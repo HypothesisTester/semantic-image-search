@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semantic-image-search-backend"
+version = "0.1.0"
+description = "Indexing and search services for Semantic Image Search"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0,<3",
+    "faiss-cpu>=1.9,<2",
+    "pillow>=11",
+    "pillow-heif>=1.0",
+    "filelock>=3.12",
+    "google-auth>=2.30",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+# The CLIP model. Kept optional so the index/auth code and its tests run without torch.
+model = ["torch>=2.2", "open_clip_torch>=2.24"]
+# DNG / camera RAW decoding.
+raw = ["rawpy>=0.21"]
+dev = ["pytest>=8", "cryptography>=42"]
+
+[tool.setuptools]
+packages = ["common"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "model: needs the real CLIP weights; run with RUN_MODEL_TESTS=1",
+]
