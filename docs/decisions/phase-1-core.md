@@ -46,4 +46,20 @@ torch and open_clip are imported only when an encoder is created, so the index, 
 
 ## Platform note: PyTorch and FAISS on macOS
 
-On macOS, the PyTorch and faiss-cpu wheels each bundle their own copy of the OpenMP runtime (`libomp`), the library both use to spread work across CPU cores. Loading both into one process aborts it the moment the second copy starts. `common/__init__.py` sets `KMP_DUPLICATE_LIB_OK=TRUE` on macOS only, before either library starts OpenMP, so both can run together. Linux builds share one runtime, so the Docker images and the public demo never need this. `test_torch_and_faiss_work_in_the_same_process` guards against a regression.
+On macOS, the PyTorch and faiss-cpu wheels each bundle their own copy of the OpenMP runtime (`libomp`), the library both use to spread work across CPU cores. Loaded into one process, they crash it.
+
+`scripts/check_torch_faiss.py` runs the same workload (torch ops, then FAISS searches checked against numpy, a save/load round trip, and 8 threads searching at once) under seven candidate fixes, each in a fresh process. Results on an Apple Silicon Mac, Python 3.13:
+
+| Fix | Result |
+|---|---|
+| none | abort ("OMP: Error #15") |
+| `KMP_DUPLICATE_LIB_OK=TRUE` | segfault |
+| + import FAISS before torch | segfault |
+| + `faiss.omp_set_num_threads(1)` | segfault |
+| + both of the above | segfault |
+| **+ `OMP_NUM_THREADS=1`** | **OK, results correct** |
+| import FAISS first, no KMP | segfault |
+
+Allowing the duplicate runtime is not enough on its own: the two runtimes still crash once both run worker threads. `faiss.omp_set_num_threads(1)` only limits FAISS's copy, while `OMP_NUM_THREADS=1` limits both, so they never run threads at the same time.
+
+`common/__init__.py` therefore sets both variables on macOS only, before either library starts OpenMP. The cost is that CPU-side torch and FAISS work uses one core on a Mac; CLIP runs on the Apple GPU (MPS) there, and exact search over a personal library takes about a millisecond on one core. Linux builds share one runtime, so the Docker images and the public demo keep full multithreading. `test_torch_and_faiss_work_in_the_same_process` guards against a regression.
