@@ -13,6 +13,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
+import common  # noqa: F401  -- must load before torch (macOS OpenMP fix)
+
 pytest.importorskip("torch")
 pytest.importorskip("open_clip")
 
@@ -58,6 +60,19 @@ def test_text_only_encoder_refuses_images():
     assert encoder.encode_texts(["hello"]).shape == (1, EMBED_DIM)
     with pytest.raises(RuntimeError, match="text"):
         encoder.encode_images([solid("red")])
+
+
+def test_torch_and_faiss_work_in_the_same_process(random_encoder):
+    # Regression test: on macOS the two libraries' OpenMP runtimes used to
+    # abort the process as soon as FAISS searched after torch had loaded.
+    import faiss
+
+    image_vecs = random_encoder.encode_images([solid(c) for c in ("red", "green", "blue")])
+    index = faiss.IndexFlatIP(EMBED_DIM)
+    index.add(image_vecs)
+    scores, ids = index.search(image_vecs[1:2], 3)
+    assert ids[0][0] == 1
+    assert scores[0][0] == pytest.approx(1.0, abs=1e-5)
 
 
 # ---- real weights ------------------------------------------------------------

@@ -43,3 +43,7 @@ torch and open_clip are imported only when an encoder is created, so the index, 
 ## Known limits (deliberate for now)
 - **Single machine.** The lock and atomic rename need all writers on one filesystem. In Phase 3 that's a Docker *named* volume. Across machines you'd use object storage with conditional writes (e.g. GCS generation preconditions) instead.
 - No delete-photo endpoint yet (`IndexStore.remove` exists for when there is one).
+
+## Platform note: PyTorch and FAISS on macOS
+
+On macOS, the PyTorch and faiss-cpu wheels each bundle their own copy of the OpenMP runtime (`libomp`), the library both use to spread work across CPU cores. Loading both into one process aborts it the moment the second copy starts. `common/__init__.py` sets `KMP_DUPLICATE_LIB_OK=TRUE` on macOS only, before either library starts OpenMP, so both can run together. Linux builds share one runtime, so the Docker images and the public demo never need this. `test_torch_and_faiss_work_in_the_same_process` guards against a regression.
