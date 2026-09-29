@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Each user can read and write only their own profile document
+// (users/{uid}) and their own image metadata (users/{uid}/images/...).
+// Everything else is denied by default.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /images/{imageId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+  }
+}
