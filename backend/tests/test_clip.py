@@ -84,7 +84,16 @@ requires_weights = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def real_encoder():
-    return ClipEncoder()
+    import warnings
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        encoder = ClipEncoder()
+    # A config/weights mismatch only shows up as a warning, and silently
+    # degrades every embedding, so treat it as a failure.
+    mismatches = [str(w.message) for w in caught if "mismatch" in str(w.message).lower()]
+    assert not mismatches, mismatches
+    return encoder
 
 
 @pytest.mark.model

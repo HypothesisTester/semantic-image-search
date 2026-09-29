@@ -20,8 +20,11 @@ from PIL import Image
 
 from .vectors import l2_normalize
 
-MODEL_NAME = "ViT-B-32"
-# "openai" selects the original OpenAI CLIP weights.
+MODEL_NAME = "ViT-B-32-quickgelu"
+# "openai" selects the original OpenAI CLIP weights. OpenAI trained with the
+# QuickGELU activation, so the model config must use it too: the plain
+# "ViT-B-32" config uses standard GELU, which still runs but produces
+# slightly wrong vectors (open_clip warns "QuickGELU mismatch").
 PRETRAINED = "openai"
 EMBED_DIM = 512
 
