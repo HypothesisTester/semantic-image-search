@@ -21,11 +21,14 @@ Grids load the 384 px thumbnail and the viewer loads the 2048 px display copy. A
 Search navigates to `/result?q=...` instead of passing the query in router state, so results survive a refresh and can be bookmarked or shared (useful for the public demo). Each new query remounts the results component, and the previous request is aborted, so a slow old search can never overwrite a newer one's results.
 
 ### 7. The demo is the same app with a flag
-`VITE_DEMO_MODE=true` builds the public demo: no sign-in, a landing page with example searches, captions under results, and no upload or profile controls. The account controls sit in their own component that only the signed-in build renders, so the demo never touches the sign-in code. Free Hugging Face Spaces sleep when idle, so a search that takes more than 3 seconds shows "Waking up the demo server…" instead of looking broken.
+`VITE_DEMO_MODE=true` builds the public demo: no sign-in, a landing page with example searches and a browsable grid of the photos (paged from the search service's demo-only `GET /browse`), and no upload or profile controls. The account controls sit in their own component that only the signed-in build renders, so the demo never touches the sign-in code. Free Hugging Face Spaces sleep when idle, so a search that takes more than 3 seconds shows "Waking up the demo server…" instead of looking broken.
 
-### 8. Profile pictures come from the sign-in provider
+### 8. Dataset captions are shown, but kept away from results
+Every COCO photo comes with captions written by people when the dataset was made; the benchmark uses them as test queries. Showing them under search results made the demo look like text matching, which is exactly what it is not: search compares the query with the image's vector and never reads a caption. Captions now appear only in the full-size viewer, with a note saying so.
+
+### 9. Profile pictures come from the sign-in provider
 Custom profile-picture upload used Firebase Storage, which new projects can only use on the paid plan. The profile now shows the sign-in provider's photo (e.g. the Google account picture) and keeps display-name editing.
 
 ### Checks
 - `npm run lint` and the TypeScript build pass with no errors (the original code had 21 lint errors; the remaining ones in untouched files, mostly `any` types, were fixed too).
-- Both builds were driven in Chromium: the demo against a live demo service (example search, typed search, all images loading, the viewer, the slow-server notice, a server error, unknown routes), and the signed-in build (every page redirects to login when signed out, including results, which the old app left open).
+- Both builds were driven in Chromium: the demo against a live demo service (the browse grid and "Show more", example search, typed search, all images loading, the viewer and its caption note, the slow-server notice, a server error, unknown routes), and the signed-in build (every page redirects to login when signed out, including results, which the old app left open).

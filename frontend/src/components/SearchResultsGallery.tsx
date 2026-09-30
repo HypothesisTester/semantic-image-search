@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { searchPhotos, ApiError } from "../api";
 import type { SearchResult } from "../api";
 import { DEMO_MODE, RESULTS_PER_SEARCH } from "../config/api";
+import PhotoLightbox from "./PhotoLightbox";
 
 interface SearchResultsGalleryProps {
   query: string;
@@ -93,52 +94,30 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
     <>
       <div style={styles.gallery}>
         {results.map((image) => (
-          <figure key={image.url} style={styles.figure}>
-            <div style={styles.imageCard} onClick={() => setSelectedImage(image)}>
-              <img
-                src={image.thumbnailUrl}
-                alt={image.caption ?? `Result ${image.rank}`}
-                loading="lazy"
-                style={styles.image}
-              />
-            </div>
-            {image.caption && <figcaption style={styles.caption}>{image.caption}</figcaption>}
-          </figure>
+          <div key={image.url} style={styles.imageCard} onClick={() => setSelectedImage(image)}>
+            <img
+              src={image.thumbnailUrl}
+              alt={`Result ${image.rank}`}
+              loading="lazy"
+              style={styles.image}
+            />
+          </div>
         ))}
       </div>
 
       {selectedImage && (
-        <div style={styles.viewerOverlay} onClick={() => setSelectedImage(null)}>
-          <div style={styles.viewerContent} onClick={(e) => e.stopPropagation()}>
-            <img
-              src={selectedImage.url}
-              alt={selectedImage.caption ?? `Result ${selectedImage.rank}`}
-              style={styles.viewerImage}
-            />
-            {selectedImage.caption && <div style={styles.viewerCaption}>{selectedImage.caption}</div>}
-          </div>
-        </div>
+        <PhotoLightbox
+          url={selectedImage.url}
+          alt={`Result ${selectedImage.rank}`}
+          caption={selectedImage.caption}
+          onClose={() => setSelectedImage(null)}
+        />
       )}
     </>
   );
 }
 
 const styles = {
-  figure: {
-    margin: 0,
-  },
-  caption: {
-    marginTop: "6px",
-    fontSize: "13px",
-    lineHeight: 1.35,
-    color: "#9aa0a6",
-  },
-  viewerCaption: {
-    marginTop: "12px",
-    textAlign: "center" as const,
-    color: "#e8eaed",
-    fontSize: "15px",
-  },
   gallery: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
@@ -194,27 +173,5 @@ const styles = {
     fontSize: "14px",
     color: "#9aa0a6",
     textAlign: "center" as const,
-  },
-  viewerOverlay: {
-    position: "fixed" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.85)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2000,
-  },
-  viewerContent: {
-    maxWidth: "90vw",
-    maxHeight: "90vh",
-  },
-  viewerImage: {
-    display: "block",
-    maxWidth: "90vw",
-    maxHeight: "80vh",
-    borderRadius: "8px",
   },
 };

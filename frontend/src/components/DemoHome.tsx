@@ -1,5 +1,13 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { REPO_URL } from '../config/api';
+import { browseDemo } from '../api';
+import type { BrowsePage } from '../api';
+import PhotoLightbox from './PhotoLightbox';
+
+const PAGE_SIZE = 24;
+const SLOW_AFTER_MS = 3000;
+type Photo = BrowsePage['items'][number];
 
 const EXAMPLES = [
   'a dog catching a frisbee',
@@ -13,6 +21,38 @@ const EXAMPLES = [
 export default function DemoHome() {
   const navigate = useNavigate();
   const search = (q: string) => navigate(`/result?q=${encodeURIComponent(q)}`);
+
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [slow, setSlow] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Photo | null>(null);
+
+  // `loading` starts true for the first page; "Show more" sets it itself.
+  const loadPage = (offset: number, signal?: AbortSignal) => {
+    const slowTimer = window.setTimeout(() => setSlow(true), SLOW_AFTER_MS);
+    return browseDemo(offset, PAGE_SIZE, signal)
+      .then(page => {
+        setTotal(page.total);
+        setPhotos(prev => (offset === 0 ? page.items : [...prev, ...page.items]));
+        setError(null);
+      })
+      .catch(err => {
+        if (!signal?.aborted) setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        window.clearTimeout(slowTimer);
+        setSlow(false);
+        if (!signal?.aborted) setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadPage(0, controller.signal);
+    return () => controller.abort();
+  }, []);
 
   return (
     <div style={styles.container}>
@@ -30,6 +70,31 @@ export default function DemoHome() {
             </button>
           ))}
         </div>
+
+        <div style={styles.sectionTitle}>
+          Or browse the collection{total > 0 && ` (${total.toLocaleString()} photos)`}
+        </div>
+        {error && <div style={styles.notice}>Could not load photos: {error}</div>}
+        {slow && photos.length === 0 && (
+          <div style={styles.notice}>
+            Waking up the demo server… this can take up to a minute after a quiet spell.
+          </div>
+        )}
+        <div style={styles.grid}>
+          {photos.map(photo => (
+            <div key={photo.url} style={styles.card} onClick={() => setSelected(photo)}>
+              <img src={photo.thumbnailUrl} alt="" loading="lazy" style={styles.image} />
+            </div>
+          ))}
+        </div>
+        {photos.length > 0 && photos.length < total && (
+          <button style={styles.more} disabled={loading} onClick={() => {
+              setLoading(true);
+              loadPage(photos.length);
+            }}>
+            {loading ? 'Loading…' : 'Show more'}
+          </button>
+        )}
 
         <div style={styles.how}>
           <div style={styles.howTitle}>How it works</div>
@@ -49,6 +114,15 @@ export default function DemoHome() {
           </a>
         </div>
       </div>
+
+      {selected && (
+        <PhotoLightbox
+          url={selected.url}
+          alt=""
+          caption={selected.caption}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
@@ -61,7 +135,7 @@ const styles = {
     padding: '48px 24px',
   },
   content: {
-    maxWidth: '760px',
+    maxWidth: '1100px',
     margin: '0 auto',
   },
   title: {
@@ -74,12 +148,56 @@ const styles = {
     lineHeight: 1.5,
     color: '#bdc1c6',
     margin: '0 0 24px',
+    maxWidth: '760px',
   },
   chips: {
     display: 'flex',
     flexWrap: 'wrap' as const,
     gap: '10px',
-    marginBottom: '48px',
+    marginBottom: '40px',
+  },
+  sectionTitle: {
+    fontSize: '14px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+    color: '#9aa0a6',
+    marginBottom: '12px',
+  },
+  notice: {
+    color: '#bdc1c6',
+    fontSize: '15px',
+    margin: '12px 0',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+    gap: '8px',
+  },
+  card: {
+    position: 'relative' as const,
+    paddingBottom: '100%',
+    backgroundColor: '#282828',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    cursor: 'pointer',
+  },
+  image: {
+    position: 'absolute' as const,
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+  },
+  more: {
+    display: 'block',
+    margin: '16px auto 0',
+    backgroundColor: 'transparent',
+    color: '#8ab4f8',
+    border: '1px solid #5f6368',
+    borderRadius: '18px',
+    padding: '8px 24px',
+    fontSize: '14px',
+    cursor: 'pointer',
   },
   chip: {
     backgroundColor: '#303134',
@@ -93,6 +211,8 @@ const styles = {
   how: {
     borderTop: '1px solid #3c4043',
     paddingTop: '24px',
+    marginTop: '40px',
+    maxWidth: '760px',
   },
   howTitle: {
     fontSize: '14px',

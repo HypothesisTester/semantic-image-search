@@ -354,6 +354,25 @@ def test_demo_mode_needs_no_sign_in_and_serves_its_images(tmp_path, demo_dir, en
         assert client.post("/upload").status_code in (404, 405)
 
 
+def test_demo_browse_pages_through_every_photo_once(tmp_path, demo_dir, encoder):
+    s = Settings(data_dir=tmp_path, demo_mode=True, demo_dir=demo_dir)
+    with TestClient(create_search(s, encoder=encoder)) as client:
+        first = client.get("/browse", params={"offset": 0, "limit": 2}).json()
+        second = client.get("/browse", params={"offset": 2, "limit": 2}).json()
+        assert first["total"] == second["total"] == 3
+        urls = [i["url"] for i in first["items"] + second["items"]]
+        assert len(urls) == 3 and len(set(urls)) == 3
+        assert all(u.endswith(".jpg") and "/images/" in u for u in urls)
+        assert client.get(urls[0]).status_code == 200
+        assert client.get("/browse", params={"limit": 0}).status_code == 422
+        assert client.get("/browse", params={"limit": 61}).status_code == 422
+        assert client.get("/browse", params={"offset": -1}).status_code == 422
+
+
+def test_browse_is_not_available_to_signed_in_services(search):
+    assert search.get("/browse").status_code == 404
+
+
 def test_demo_mode_ignores_tokens(tmp_path, demo_dir, encoder):
     s = Settings(data_dir=tmp_path, demo_mode=True, demo_dir=demo_dir)
     with TestClient(create_search(s, encoder=encoder)) as client:

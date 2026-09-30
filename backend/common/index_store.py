@@ -97,6 +97,13 @@ class _Snapshot:
     def __init__(self, index: faiss.Index, items: dict[int, dict]) -> None:
         self.index = index
         self.items = items
+        self._ordered: list[tuple[str, dict]] | None = None
+
+    def ordered(self) -> list[tuple[str, dict]]:
+        """All (key, meta) pairs in key order, sorted once per loaded version."""
+        if self._ordered is None:
+            self._ordered = sorted((item["key"], item["meta"]) for item in self.items.values())
+        return self._ordered
 
     @classmethod
     def empty(cls, dim: int) -> _Snapshot:
@@ -223,6 +230,20 @@ class IndexStore:
     def count(self, uid: str) -> int:
         snap = self._load_cached(self._user_dir(uid), uid)
         return snap.index.ntotal if snap else 0
+
+    def list_items(self, uid: str, offset: int = 0, limit: int = 50) -> tuple[int, list[tuple[str, dict]]]:
+        """A page of ``uid``'s items as (key, meta) pairs, in key order, plus the total count.
+
+        Key order is stable across calls, so paging with offset/limit never
+        repeats or skips an item while the index is unchanged.
+        """
+        if offset < 0 or limit <= 0:
+            raise ValueError("offset must be >= 0 and limit > 0")
+        snap = self._load_cached(self._user_dir(uid), uid)
+        if snap is None:
+            return 0, []
+        ordered = snap.ordered()
+        return len(ordered), ordered[offset : offset + limit]
 
     # ---- internals --------------------------------------------------------
 

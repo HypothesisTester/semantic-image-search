@@ -78,6 +78,17 @@ export async function uploadPhotos(files: File[]): Promise<UploadResult[]> {
   return body.results as UploadResult[];
 }
 
+export interface BrowsePage {
+  total: number;
+  items: { url: string; thumbnailUrl: string; caption?: string }[];
+}
+
+/** A page of the demo's photos, for its landing page (demo mode only). */
+export async function browseDemo(offset: number, limit: number, signal?: AbortSignal): Promise<BrowsePage> {
+  const res = await send(`${SEARCH_URL}/browse?offset=${offset}&limit=${limit}`, { signal });
+  return (await res.json()) as BrowsePage;
+}
+
 /** Search the user's photos (or the demo's) by text. */
 export async function searchPhotos(
   text: string,

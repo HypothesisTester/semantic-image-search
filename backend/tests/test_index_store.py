@@ -106,6 +106,24 @@ def test_remove(store):
     assert store.remove("nobody", ["x"]) == 0
 
 
+def test_list_items_pages_in_key_order(store):
+    store.add(UID, ["c.jpg", "a.jpg", "b.jpg"], unit_vectors(3, seed=20), metas=[{"n": c} for c in "cab"])
+    total, page = store.list_items(UID, offset=0, limit=2)
+    assert total == 3 and [k for k, _ in page] == ["a.jpg", "b.jpg"]
+    assert store.list_items(UID, offset=2, limit=2)[1] == [("c.jpg", {"n": "c"})]
+    assert store.list_items("nobody") == (0, [])
+    with pytest.raises(ValueError):
+        store.list_items(UID, limit=0)
+
+
+def test_list_items_sees_new_additions(tmp_path):
+    reader, writer = IndexStore(tmp_path), IndexStore(tmp_path)
+    writer.add(UID, ["b.jpg"], unit_vectors(1, seed=21))
+    assert reader.list_items(UID)[0] == 1
+    writer.add(UID, ["a.jpg"], unit_vectors(1, seed=22))
+    assert [k for k, _ in reader.list_items(UID)[1]] == ["a.jpg", "b.jpg"]
+
+
 def test_item_ids_are_stable_and_non_negative():
     assert item_id("a/b.jpg") == item_id("a/b.jpg")
     assert item_id("a/b.jpg") != item_id("a/c.jpg")
