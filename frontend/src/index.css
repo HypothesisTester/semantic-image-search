@@ -246,6 +246,18 @@ button {
   text-decoration: none;
 }
 
+.icon-button__logo {
+  display: block;
+  width: 20px;
+  height: 20px;
+  opacity: 0.75;
+  transition: opacity 0.2s var(--ease);
+}
+
+.icon-button:hover .icon-button__logo {
+  opacity: 1;
+}
+
 .icon-button svg {
   width: 19px;
   height: 19px;
@@ -770,23 +782,13 @@ button {
     margin: 14px auto 28px;
   }
 
-  /* One swipeable row of examples instead of a tall stack. */
   .chips {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    margin: 0 -20px;
-    padding: 2px 20px 6px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .chips::-webkit-scrollbar {
-    display: none;
+    gap: 6px;
   }
 
   .chip {
-    flex: none;
+    padding: 7px 13px;
+    font-size: 13px;
   }
 
   /* The three cards become a swipeable row, so the photos start sooner. */

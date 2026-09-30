@@ -6,6 +6,7 @@ import type { BrowsePage } from '../api';
 import PhotoLightbox from './PhotoLightbox';
 import PhotoTile from './PhotoTile';
 import Search from './Search';
+import { useFitRows } from './useFitRows';
 
 const PAGE_SIZE = 24;
 const SLOW_AFTER_MS = 3000;
@@ -34,6 +35,9 @@ export default function DemoHome() {
   const [selected, setSelected] = useState<Photo | null>(null);
   const loadingOffset = useRef<number | null>(null);
   const sentinel = useRef<HTMLDivElement>(null);
+  // At most two rows of example searches; on a phone the ones that don't fit are left out.
+  const chips = useRef<HTMLDivElement>(null);
+  useFitRows(chips, 2);
 
   const loadPage = useCallback((offset: number, signal?: AbortSignal) => {
     if (loadingOffset.current === offset) return;
@@ -92,7 +96,7 @@ export default function DemoHome() {
         <div className="hero__search">
           <Search variant="hero" autoFocus />
         </div>
-        <div className="chips">
+        <div className="chips" ref={chips}>
           {EXAMPLES.map(q => (
             <button key={q} className="chip" onClick={() => search(q)}>
               {q}

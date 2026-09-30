@@ -58,3 +58,5 @@ VITE_DEMO_MODE=true npm run dev
 The public demo runs entirely in the browser instead, with its data on Hugging Face; see `backend/README.md` and `docs/decisions/phase-5-deploy.md`.
 
 Service addresses can be changed in `frontend/.env.local`; see `frontend/.env.example`.
+
+The demo's GitHub button uses GitHub's official mark: put `github-mark.svg` and `github-mark-white.svg` from https://github.com/logos in `frontend/public/`. Without them it shows a plain code icon.
