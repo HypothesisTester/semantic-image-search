@@ -59,4 +59,4 @@ The public demo runs entirely in the browser instead, with its data on Hugging F
 
 Service addresses can be changed in `frontend/.env.local`; see `frontend/.env.example`.
 
-The demo's GitHub button uses GitHub's official mark: put `github-mark.svg` and `github-mark-white.svg` from https://github.com/logos in `frontend/public/`. Without them it shows a plain code icon.
+The demo's GitHub button uses GitHub's official mark from https://github.com/logos (`GitHub_Invertocat_Black.svg` and `GitHub_Invertocat_White.svg`, saved in `frontend/public/` as `github-mark.svg` and `github-mark-white.svg`). Without them it shows a plain code icon.
