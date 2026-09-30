@@ -1,0 +1,55 @@
+# Local stack:        docker compose up --build
+# With the demo too:  docker compose --profile demo up --build
+#
+#   indexer  http://localhost:8001   POST /upload, GET /photos/...
+#   search   http://localhost:8002   POST /search, GET /photos/...
+#   demo     http://localhost:8003   POST /search over COCO, GET /images/...  (profile "demo")
+
+name: semantic-image-search
+
+x-backend: &backend
+  build: ./backend
+  image: semantic-image-search-backend
+  restart: unless-stopped
+
+services:
+  indexer:
+    <<: *backend
+    environment:
+      APP: services.indexer
+      FIREBASE_PROJECT_ID: semantic-image-search-666d0
+      CORS_ORIGINS: http://localhost:5173
+    volumes:
+      - app-data:/data
+    ports:
+      - "8001:8000"
+
+  search:
+    <<: *backend
+    environment:
+      APP: services.search
+      FIREBASE_PROJECT_ID: semantic-image-search-666d0
+      CORS_ORIGINS: http://localhost:5173
+    volumes:
+      # Read-only: the search service never writes, so it cannot.
+      - app-data:/data:ro
+    ports:
+      - "8002:8000"
+
+  demo:
+    <<: *backend
+    profiles: ["demo"]
+    environment:
+      APP: services.search
+      DEMO_MODE: "1"
+      CORS_ORIGINS: http://localhost:5173
+    volumes:
+      # Built on the host by `python -m demo.build_index`.
+      - ./data/demo:/demo:ro
+    ports:
+      - "8003:8000"
+
+volumes:
+  # A named volume, not a folder on the host: it lives inside Docker's Linux
+  # VM, where the index store's file locks behave as on any Linux disk.
+  app-data:
