@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { REPO_URL, STATIC_DEMO } from '../config/api';
+import { STATIC_DEMO } from '../config/api';
 import { browseDemo } from '../api';
 import type { BrowsePage } from '../api';
 import PhotoLightbox from './PhotoLightbox';
@@ -100,49 +100,6 @@ export default function DemoHome() {
           ))}
         </div>
       </section>
-
-      <section className="features">
-        <div className="feature">
-          <h2 className="feature__title">Searches by meaning</h2>
-          <p className="feature__text">
-            OpenAI's CLIP model turns photos and text into points in the same space, so a description lands
-            close to the photos that match it.
-          </p>
-        </div>
-        {STATIC_DEMO ? (
-          <div className="feature">
-            <h2 className="feature__title">Runs in your browser</h2>
-            <p className="feature__text">
-              No server. Your words are turned into a vector on this page and compared with all 5,000 photos
-              in milliseconds. The model downloads once, the first time you type a search.
-            </p>
-          </div>
-        ) : (
-          <div className="feature">
-            <h2 className="feature__title">Exact nearest-neighbour search</h2>
-            <p className="feature__text">
-              Each search is embedded on the server and compared with every photo using FAISS.
-            </p>
-          </div>
-        )}
-        <div className="feature">
-          <h2 className="feature__title">Measured</h2>
-          <p className="feature__text">
-            For 54.8% of human-written captions, the photo they describe is in the top five results, in line
-            with published results for this model.{' '}
-            <a href={REPO_URL} target="_blank" rel="noreferrer">
-              Code and benchmark
-            </a>
-          </p>
-        </div>
-      </section>
-
-      <div className="section-head">
-        <h2 className="section-title">Browse</h2>
-        <span className="section-meta">
-          {total > 0 ? `${total.toLocaleString()} photos from COCO` : 'Photos from COCO'}
-        </span>
-      </div>
 
       {slow && photos.length === 0 && !error && !STATIC_DEMO && (
         <p className="notice">Waking up the demo server… this can take up to a minute after a quiet spell.</p>

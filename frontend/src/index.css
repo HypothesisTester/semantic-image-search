@@ -129,10 +129,10 @@ button {
   white-space: nowrap;
 }
 
-.brand img {
-  width: 26px;
-  height: 26px;
-  object-fit: contain;
+.logo {
+  display: block;
+  flex: none;
+  color: var(--text);
 }
 
 .badge {
@@ -229,6 +229,28 @@ button {
   box-shadow: var(--shadow);
 }
 
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--text-2);
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.icon-button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.icon-button svg {
+  width: 19px;
+  height: 19px;
+}
+
 .link-quiet {
   font-size: 14px;
   color: var(--text-2);
@@ -311,7 +333,7 @@ button {
 
 .hero {
   text-align: center;
-  padding: 80px 0 32px;
+  padding: 80px 0 56px;
 }
 
 .hero__title {

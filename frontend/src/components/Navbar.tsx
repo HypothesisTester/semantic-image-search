@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from './ImageUpload';
 import Search from './Search';
+import Logo from './Logo';
 import { DEMO_MODE, REPO_URL } from '../config/api';
 
 export default function Navbar() {
@@ -16,7 +17,7 @@ export default function Navbar() {
     <header className="header">
       <div className="header__inner">
         <button className="brand" onClick={() => navigate(DEMO_MODE ? '/' : '/home')} aria-label="ImageIntel home">
-          <img src="/imageintel.png" alt="" />
+          <Logo />
           <span>ImageIntel</span>
         </button>
         {DEMO_MODE && <span className="badge">Demo</span>}
@@ -32,8 +33,17 @@ export default function Navbar() {
 
         <div className="header__actions">
           {DEMO_MODE ? (
-            <a href={REPO_URL} target="_blank" rel="noreferrer" className="link-quiet">
-              GitHub
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="icon-button"
+              aria-label="Source code on GitHub"
+              title="Source code on GitHub"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8.5 7 3.5 12l5 5M15.5 7l5 5-5 5" />
+              </svg>
             </a>
           ) : (
             <AccountControls />
