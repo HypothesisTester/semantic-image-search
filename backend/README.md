@@ -9,6 +9,9 @@ Shared core (`common/`) for the indexing and search services.
 | `common/index_store.py` | Per-user FAISS indexes on disk, with per-user locking and atomic writes |
 | `common/auth.py` | Verifies Firebase ID tokens using only the project id |
 | `common/vectors.py` | Normalisation and validation helpers |
+| `common/photo_store.py` | Stores uploads, with JPEG display copies and thumbnails |
+| `services/indexer.py` | `POST /upload`: embeds photos into the user's index |
+| `services/search.py` | `POST /search`: finds a user's photos by text; demo mode |
 
 ## Setup
 
@@ -18,7 +21,7 @@ Requires Python 3.11 or newer.
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[model,raw,dev]"
+pip install -e ".[model,raw,service,dev]"
 ```
 
 ## COCO benchmark
@@ -33,6 +36,16 @@ python -m demo.build_index
 ```
 
 `download_coco` fetches about 1 GB. `evaluate` writes `bench/results/coco_val2017.md` and `.json`.
+
+## Smoke test against Docker
+
+With `docker compose up` running (and the COCO data downloaded):
+
+```bash
+python scripts/smoke_test.py
+```
+
+It signs in as a throwaway Firebase user, uploads 20 COCO photos, searches with their captions, and deletes the user afterwards.
 
 ## Tests
 

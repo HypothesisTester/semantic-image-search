@@ -22,10 +22,12 @@ dependencies = [
 model = ["torch>=2.2", "open_clip_torch>=2.24"]
 # DNG / camera RAW decoding.
 raw = ["rawpy>=0.21"]
-dev = ["pytest>=8", "cryptography>=42"]
+# The HTTP services.
+service = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9"]
+dev = ["pytest>=8", "cryptography>=42", "httpx>=0.27"]
 
 [tool.setuptools]
-packages = ["common", "bench", "demo"]
+packages = ["common", "bench", "demo", "services"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
