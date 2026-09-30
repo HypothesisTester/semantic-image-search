@@ -1,4 +1,8 @@
 # One image for both services; APP picks which one a container runs.
+#
+# Layers are ordered from least to most often changed, so editing the code
+# only re-runs the last few, fast steps: dependencies and the model weights
+# stay cached.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -11,22 +15,28 @@ WORKDIR /app
 
 # CPU-only PyTorch. The default PyPI build for x86-64 Linux bundles CUDA
 # libraries worth several GB that a CPU-only container never uses.
-# Installed first and on its own so this slow layer stays cached when the
-# code changes.
 RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
+# The other dependencies, from pyproject.toml alone: empty package folders
+# stand in for the code, which is copied later.
 COPY pyproject.toml ./
+RUN mkdir -p common bench demo services \
+    && pip install ".[service,model]" \
+    && pip uninstall -y semantic-image-search-backend
+
+# Bake the CLIP weights (~350 MB) into the image, so a container starts
+# without downloading anything, then forbid downloads at runtime. The model
+# name must match common/clip.py.
+RUN python -c "import open_clip; open_clip.create_model_and_transforms('ViT-B-32-quickgelu', pretrained='openai')" \
+    && chmod -R a+rX /opt/hf
+ENV HF_HUB_OFFLINE=1
+
+# The code. Changes here rebuild only from this point.
 COPY common ./common
 COPY services ./services
 COPY bench ./bench
 COPY demo ./demo
-RUN pip install ".[service,model]"
-
-# Bake the CLIP weights (~350 MB) into the image, so a container starts
-# without downloading anything, then forbid downloads at runtime.
-RUN python -c "import common; from common.clip import ClipEncoder; ClipEncoder(device='cpu')" \
-    && chmod -R a+rX /opt/hf
-ENV HF_HUB_OFFLINE=1
+RUN pip install --no-deps .
 
 # Run as an unprivileged user. /data becomes the named volume and inherits
 # this ownership when Docker first creates it.

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import type { Timestamp } from 'firebase/firestore';
 
 interface ImageData {
   id: string;
@@ -6,7 +7,7 @@ interface ImageData {
   fileName: string;
   fileSize: number;
   fileType: string;
-  uploadedAt: any;
+  uploadedAt: Timestamp | null;
 }
 
 interface ImageViewerProps {
@@ -35,9 +36,9 @@ export default function ImageViewer({ image, onClose }: ImageViewerProps) {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  const formatDate = (timestamp: any) => {
+  const formatDate = (timestamp: Timestamp | null) => {
     if (!timestamp) return 'Unknown';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = timestamp.toDate();
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',

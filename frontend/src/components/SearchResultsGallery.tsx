@@ -1,72 +1,53 @@
 import { useEffect, useState } from "react";
+import { searchPhotos, ApiError } from "../api";
+import type { SearchResult } from "../api";
+import { DEMO_MODE, RESULTS_PER_SEARCH } from "../config/api";
 
 interface SearchResultsGalleryProps {
-  userId: string | null;
   query: string;
 }
 
-interface SearchResult {
-  rank: number;
-  score: number;
-  url: string;
-}
+// Free Hugging Face Spaces go to sleep when idle, and the first request
+// after that waits while the container starts. Past this delay, say so.
+const SLOW_AFTER_MS = 3000;
 
-export default function SearchResultsGallery({
-  userId,
-  query,
-}: SearchResultsGalleryProps) {
+export default function SearchResultsGallery({ query }: SearchResultsGalleryProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slow, setSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<SearchResult | null>(null);
 
   useEffect(() => {
-    if (!userId || !query) {
-      setLoading(false);
-      return;
-    }
+    if (!query) return;
+    // The parent remounts this component for each new query (key={query}),
+    // so state starts fresh. Aborting on unmount still guarantees a slow old
+    // search can never overwrite the results of a newer one.
+    const controller = new AbortController();
+    const slowTimer = window.setTimeout(() => setSlow(true), SLOW_AFTER_MS);
 
-    const fetchResults = async () => {
-    try {
-        setLoading(true);
-        setError(null);
+    searchPhotos(query, RESULTS_PER_SEARCH, controller.signal)
+      .then(setResults)
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setError(err instanceof ApiError || err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        window.clearTimeout(slowTimer);
+        if (!controller.signal.aborted) setLoading(false);
+      });
 
-        const response = await fetch("https://semantic-search-backend-628129189292.us-central1.run.app/search", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            userId,      
-            text: query,
-            k: 5,       
-        }),
-        });
-
-        if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        setResults(data.results || []);
-    } catch (err: any) {
-        console.error("Error fetching search results:", err);
-        setError(err.message || "Failed to fetch results");
-    } finally {
-        setLoading(false);
-    }
+    return () => {
+      controller.abort();
+      window.clearTimeout(slowTimer);
     };
+  }, [query]);
 
-
-    fetchResults();
-  }, [userId, query]);
-
-  if (!userId || !query) {
+  if (!query) {
     return (
       <div style={styles.emptyContainer}>
-        <div style={styles.emptyTitle}>Missing search info</div>
-        <div style={styles.emptyText}>User ID or search text is empty.</div>
+        <div style={styles.emptyTitle}>Type something to search for</div>
+        <div style={styles.emptyText}>For example: “a dog on a beach”.</div>
       </div>
     );
   }
@@ -74,7 +55,15 @@ export default function SearchResultsGallery({
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
-        <div style={styles.loadingText}>Searching your photos...</div>
+        <div style={styles.loadingText}>
+          {slow && DEMO_MODE
+            ? "Waking up the demo server… the first search after a quiet spell can take up to a minute."
+            : slow
+              ? "Still searching…"
+              : DEMO_MODE
+                ? "Searching…"
+                : "Searching your photos…"}
+        </div>
       </div>
     );
   }
@@ -94,7 +83,7 @@ export default function SearchResultsGallery({
         <div style={styles.emptyIcon}>🔍</div>
         <div style={styles.emptyTitle}>No matching photos</div>
         <div style={styles.emptyText}>
-          Try a different search term or upload more photos.
+          {DEMO_MODE ? "Try a different description." : "Upload some photos first, or try a different description."}
         </div>
       </div>
     );
@@ -104,34 +93,29 @@ export default function SearchResultsGallery({
     <>
       <div style={styles.gallery}>
         {results.map((image) => (
-          <div
-            key={image.rank}
-            style={styles.imageCard}
-            onClick={() => setSelectedImage(image)}
-          >
-            <img
-              src={image.url}
-              alt={`Result ${image.rank}`}
-              style={styles.image}
-            />
-          </div>
+          <figure key={image.url} style={styles.figure}>
+            <div style={styles.imageCard} onClick={() => setSelectedImage(image)}>
+              <img
+                src={image.thumbnailUrl}
+                alt={image.caption ?? `Result ${image.rank}`}
+                loading="lazy"
+                style={styles.image}
+              />
+            </div>
+            {image.caption && <figcaption style={styles.caption}>{image.caption}</figcaption>}
+          </figure>
         ))}
       </div>
 
       {selectedImage && (
-        <div
-          style={styles.viewerOverlay}
-          onClick={() => setSelectedImage(null)}
-        >
-          <div
-            style={styles.viewerContent}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div style={styles.viewerOverlay} onClick={() => setSelectedImage(null)}>
+          <div style={styles.viewerContent} onClick={(e) => e.stopPropagation()}>
             <img
               src={selectedImage.url}
-              alt={`Result ${selectedImage.rank}`}
+              alt={selectedImage.caption ?? `Result ${selectedImage.rank}`}
               style={styles.viewerImage}
             />
+            {selectedImage.caption && <div style={styles.viewerCaption}>{selectedImage.caption}</div>}
           </div>
         </div>
       )}
@@ -140,6 +124,21 @@ export default function SearchResultsGallery({
 }
 
 const styles = {
+  figure: {
+    margin: 0,
+  },
+  caption: {
+    marginTop: "6px",
+    fontSize: "13px",
+    lineHeight: 1.35,
+    color: "#9aa0a6",
+  },
+  viewerCaption: {
+    marginTop: "12px",
+    textAlign: "center" as const,
+    color: "#e8eaed",
+    fontSize: "15px",
+  },
   gallery: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
@@ -213,8 +212,9 @@ const styles = {
     maxHeight: "90vh",
   },
   viewerImage: {
-    maxWidth: "100%",
-    maxHeight: "100%",
+    display: "block",
+    maxWidth: "90vw",
+    maxHeight: "80vh",
     borderRadius: "8px",
   },
 };

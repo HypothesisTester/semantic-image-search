@@ -1,19 +1,12 @@
 // result.tsx
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchResultsGallery from "../components/SearchResultsGallery";
-
-interface ResultLocationState {
-  query: string;
-  userId: string | null;
-}
+import { DEMO_MODE } from "../config/api";
 
 export default function Result() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const state = location.state as ResultLocationState | null;
-
-  const query = state?.query ?? "";
-  const userId = state?.userId ?? null;
+  const [params] = useSearchParams();
+  const query = (params.get("q") ?? "").trim();
 
   const pageStyles = {
     container: {
@@ -48,16 +41,14 @@ export default function Result() {
 
   return (
     <div style={pageStyles.container}>
-      <button
-        style={pageStyles.backButton}
-        onClick={() => navigate("/home")}
-      >
+      <button style={pageStyles.backButton} onClick={() => navigate(DEMO_MODE ? "/" : "/home")}>
         ← Back
       </button>
 
       <h1 style={pageStyles.heading}>Search Results</h1>
-      
-      <SearchResultsGallery userId={userId} query={query} />
+      {query && <div style={pageStyles.meta}>“{query}”</div>}
+
+      <SearchResultsGallery key={query} query={query} />
     </div>
   );
 }

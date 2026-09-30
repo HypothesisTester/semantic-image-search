@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { doc, setDoc } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
 import { db } from '../config/firebase';
 
 export default function Signup() {
@@ -33,15 +34,16 @@ export default function Signup() {
 
 
       navigate('/home');
-    } catch (err: any) {
+    } catch (err) {
+    const code = err instanceof FirebaseError ? err.code : '';
       // Handle specific Firebase error codes
-      if (err.code === 'auth/email-already-in-use') {
+      if (code === 'auth/email-already-in-use') {
         setError('An account with this email already exists');
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (code === 'auth/invalid-email') {
         setError('Invalid email address');
-      } else if (err.code === 'auth/weak-password') {
+      } else if (code === 'auth/weak-password') {
         setError('Password should be at least 6 characters');
-      } else if (err.code === 'auth/operation-not-allowed') {
+      } else if (code === 'auth/operation-not-allowed') {
         setError('Email/password accounts are not enabled');
       } else {
         setError('Failed to create an account. Please try again');
@@ -69,10 +71,11 @@ export default function Signup() {
       }, { merge: true }); // merge: true will update if exists, create if not
 
       navigate('/home');
-    } catch (err: any) {
-      if (err.code === 'auth/popup-closed-by-user') {
+    } catch (err) {
+    const code = err instanceof FirebaseError ? err.code : '';
+      if (code === 'auth/popup-closed-by-user') {
         setError('Sign-in cancelled');
-      } else if (err.code === 'auth/popup-blocked') {
+      } else if (code === 'auth/popup-blocked') {
         setError('Pop-up blocked. Please allow pop-ups for this site');
       } else {
         setError('Failed to sign in with Google');

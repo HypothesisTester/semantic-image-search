@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { doc, setDoc } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
 import { db } from '../config/firebase';
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,19 +21,20 @@ export default function Login() {
       setLoading(true);
       await login(email, password);
       navigate('/home');
-    } catch (err: any) {
+    } catch (err) {
+    const code = err instanceof FirebaseError ? err.code : '';
       // Handle specific Firebase error codes
-      if (err.code === 'auth/invalid-credential') {
+      if (code === 'auth/invalid-credential') {
         setError('Email or password doesn\'t match');
-      } else if (err.code === 'auth/user-not-found') {
+      } else if (code === 'auth/user-not-found') {
         setError('No account found with this email');
-      } else if (err.code === 'auth/wrong-password') {
+      } else if (code === 'auth/wrong-password') {
         setError('Email or password doesn\'t match');
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (code === 'auth/invalid-email') {
         setError('Invalid email address');
-      } else if (err.code === 'auth/user-disabled') {
+      } else if (code === 'auth/user-disabled') {
         setError('This account has been disabled');
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (code === 'auth/too-many-requests') {
         setError('Too many failed attempts. Please try again later');
       } else {
         setError('Failed to log in. Please try again');
@@ -58,10 +60,11 @@ export default function Login() {
 
 
     navigate('/home');
-  } catch (err: any) {
-    if (err.code === 'auth/popup-closed-by-user') {
+  } catch (err) {
+    const code = err instanceof FirebaseError ? err.code : '';
+    if (code === 'auth/popup-closed-by-user') {
       setError('Sign-in cancelled');
-    } else if (err.code === 'auth/popup-blocked') {
+    } else if (code === 'auth/popup-blocked') {
       setError('Pop-up blocked. Please allow pop-ups for this site');
     } else {
       setError('Failed to sign in with Google');

@@ -280,6 +280,24 @@ def test_health(indexer, search):
     assert search.get("/healthz").json() == {"status": "ok"}
 
 
+def test_health_checks_are_left_out_of_the_access_log(indexer):
+    import logging
+
+    access = logging.getLogger("uvicorn.access")
+
+    def record(path):
+        # The same shape uvicorn uses for access-log lines.
+        return logging.LogRecord(
+            "uvicorn.access", logging.INFO, __file__, 0,
+            '%s - "%s %s HTTP/%s" %d', ("127.0.0.1:5000", "GET", path, "1.1", 200), None,
+        )
+
+    assert not access.filter(record("/healthz"))
+    assert access.filter(record("/search"))
+    # Creating more apps does not stack up duplicate filters.
+    assert sum(type(f).__name__ == "_HideHealthChecks" for f in access.filters) == 1
+
+
 def test_photos_base_url_setting_is_used(tmp_path, encoder):
     s = Settings(data_dir=tmp_path, firebase_project_id="test", photos_base_url="https://photos.example")
     with TestClient(create_indexer(s, encoder=encoder, verifier=FakeVerifier())) as client:
