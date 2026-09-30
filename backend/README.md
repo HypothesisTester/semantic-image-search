@@ -37,6 +37,16 @@ python -m demo.build_index
 
 `download_coco` fetches about 1 GB. `evaluate` writes `bench/results/coco_val2017.md` and `.json`.
 
+## Deploying the public demo
+
+After `python -m demo.build_index`, and signing in once with `hf auth login`:
+
+```bash
+python -m demo.deploy_space
+```
+
+This creates or updates a Hugging Face Space running the search service in demo mode. See `docs/decisions/phase-5-deploy.md`.
+
 ## Smoke test against Docker
 
 With `docker compose up` running (and the COCO data downloaded):
