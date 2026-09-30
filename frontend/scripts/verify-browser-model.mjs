@@ -1,6 +1,6 @@
 // Check that the browser's CLIP text encoder agrees with the server's.
 //
-//   node scripts/verify-browser-model.mjs
+//   node scripts/verify-browser-model.mjs                         (the page's model)
 //   node scripts/verify-browser-model.mjs --dtypes q8,fp16,fp32   (compare precisions)
 //
 // Run from frontend/ after `python -m demo.export_static` (in backend/). It
@@ -18,9 +18,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { decodeFloat16, normalize, topK } from '../src/demo/vectorMath.ts';
+import { BROWSER_DTYPE, BROWSER_MODEL } from '../src/demo/modelConfig.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const BROWSER_MODEL = 'Xenova/clip-vit-base-patch32';
 const KS = [1, 5, 10];
 
 /** Pure comparison logic, separate from model loading so it can be tested. */
@@ -68,7 +68,7 @@ function readF32(file) {
 }
 
 function parseArgs(argv) {
-  const args = { dataDir: path.join(HERE, '..', '..', 'data'), dtypes: ['q8'] };
+  const args = { dataDir: path.join(HERE, '..', '..', 'data'), dtypes: [BROWSER_DTYPE] };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--dtypes') args.dtypes = argv[++i].split(',');
     else if (argv[i] === '--fp32') args.dtypes = ['fp32'];

@@ -1,13 +1,12 @@
 // The in-browser text encoder: CLIP's text half, loaded on first use.
 //
-// transformers.js runs a quantised (8-bit) ONNX conversion of the same OpenAI
-// CLIP ViT-B/32 weights the server uses. The library and model are loaded
-// only when a visitor types a search the page has not precomputed, and the
-// browser caches the model afterwards.
+// transformers.js runs a half-precision ONNX conversion of the same OpenAI
+// CLIP ViT-B/32 weights the server uses (see modelConfig.ts for why fp16).
+// The library and model are loaded only when a visitor types a search the
+// page has not precomputed, and the browser caches the model afterwards.
 
 import { normalize } from './vectorMath';
-
-export const BROWSER_MODEL = 'Xenova/clip-vit-base-patch32';
+import { BROWSER_DTYPE, BROWSER_MODEL } from './modelConfig';
 
 export interface ModelProgress {
   loadedMB: number;
@@ -34,7 +33,7 @@ async function loadEncoder(): Promise<Encoder> {
   const [tokenizer, model] = await Promise.all([
     AutoTokenizer.from_pretrained(BROWSER_MODEL),
     CLIPTextModelWithProjection.from_pretrained(BROWSER_MODEL, {
-      dtype: 'q8',
+      dtype: BROWSER_DTYPE,
       progress_callback: onProgress,
     }),
   ]);
