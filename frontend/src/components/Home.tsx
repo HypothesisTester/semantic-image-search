@@ -1,18 +1,9 @@
-
 import ImageGallery from './ImageGallery';
 
 export default function Home() {
   return (
-    <div style={styles.container}>
-      {/* <Navbar /> */}
+    <main className="page">
       <ImageGallery />
-    </div>
+    </main>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#202124',
-  },
-};

@@ -128,9 +128,8 @@ export default function ImageUpload({ onUploadError }: ImageUploadProps) {
 
   return (
     <>
-      <label htmlFor="file-upload" style={styles.uploadButton}>
-        <span style={styles.plusIcon}>+</span>
-        <span style={styles.uploadText}>Upload</span>
+      <label htmlFor="file-upload" className="button button--primary">
+        Upload
       </label>
       <input
         id="file-upload"
@@ -152,30 +151,6 @@ export default function ImageUpload({ onUploadError }: ImageUploadProps) {
 }
 
 const styles = {
-  uploadButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '0 24px',
-    height: '36px',
-    backgroundColor: 'transparent',
-    color: '#8ab4f8',
-    borderRadius: '18px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500' as const,
-    transition: 'background-color 0.2s',
-    border: '1px solid #5f6368',
-    userSelect: 'none' as const,
-  },
-  plusIcon: {
-    fontSize: '20px',
-    fontWeight: 'normal' as const,
-    lineHeight: '1',
-  },
-  uploadText: {
-    fontSize: '14px',
-  },
   fileInput: {
     display: 'none',
   }

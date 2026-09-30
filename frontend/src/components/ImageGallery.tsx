@@ -4,6 +4,7 @@ import type { Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import ImageViewer from './ImageViewer';
+import PhotoTile from './PhotoTile';
 
 interface ImageData {
   id: string;
@@ -45,107 +46,44 @@ export default function ImageGallery() {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loadingText}>Loading your photos...</div>
-      </div>
+      <>
+        <div className="section-head">
+          <h1 className="section-title">Your photos</h1>
+        </div>
+        <div className="grid">
+          {Array.from({ length: 12 }, (_, i) => <div key={i} className="skeleton" />)}
+        </div>
+      </>
     );
   }
 
   if (images.length === 0) {
     return (
-      <div style={styles.emptyContainer}>
-        <div style={styles.emptyIcon}></div>
-        <div style={styles.emptyTitle}>No photos yet</div>
-        <div style={styles.emptyText}>
-          Click the + Upload button to add your first photos
-        </div>
+      <div className="empty">
+        <h1 className="empty__title">No photos yet</h1>
+        <p className="empty__text">Use Upload to add your first photos. Then search them by describing what's in them.</p>
       </div>
     );
   }
 
   return (
     <>
-      <div style={styles.gallery}>
-        {images.map((image) => (
-          <div 
-            key={image.id} 
-            style={styles.imageCard}
-            onClick={() => setSelectedImage(image)}
-          >
-            <img
-              src={image.thumbnailUrl ?? image.url}
-              alt={image.fileName}
-              loading="lazy"
-              style={styles.image}
-            />
-          </div>
+      <div className="section-head">
+        <h1 className="section-title">Your photos</h1>
+        <span className="section-meta">{images.length.toLocaleString()} {images.length === 1 ? 'photo' : 'photos'}</span>
+      </div>
+      <div className="grid">
+        {images.map(image => (
+          <PhotoTile
+            key={image.id}
+            src={image.thumbnailUrl ?? image.url}
+            alt={image.fileName}
+            onOpen={() => setSelectedImage(image)}
+          />
         ))}
       </div>
 
-      {selectedImage && (
-        <ImageViewer 
-          image={selectedImage} 
-          onClose={() => setSelectedImage(null)}
-        />
-      )}
+      {selectedImage && <ImageViewer image={selectedImage} onClose={() => setSelectedImage(null)} />}
     </>
   );
 }
-
-const styles = {
-  gallery: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-    gap: '8px',
-    padding: '16px',
-  },
-  imageCard: {
-    position: 'relative' as const,
-    paddingBottom: '100%',
-    backgroundColor: '#282828',
-    borderRadius: '8px',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-  },
-  image: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover' as const,
-  },
-  loadingContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '400px',
-  },
-  loadingText: {
-    color: '#e8eaed',
-    fontSize: '16px',
-  },
-  emptyContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '400px',
-    padding: '40px',
-  },
-  emptyIcon: {
-    fontSize: '64px',
-    marginBottom: '16px',
-  },
-  emptyTitle: {
-    fontSize: '22px',
-    color: '#e8eaed',
-    marginBottom: '8px',
-    fontWeight: '400' as const,
-  },
-  emptyText: {
-    fontSize: '14px',
-    color: '#9aa0a6',
-  },
-};

@@ -136,27 +136,31 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'var(--bg)',
     padding: '20px'
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--surface)',
     padding: '40px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow)',
     width: '100%',
     maxWidth: '400px'
   },
   title: {
     textAlign: 'center' as const,
     marginBottom: '30px',
-    color: '#333'
+    fontSize: '28px',
+    fontWeight: '700' as const,
+    letterSpacing: '-0.02em',
+    color: 'var(--text)'
   },
   error: {
-    backgroundColor: '#fee',
-    color: '#c33',
+    backgroundColor: 'rgba(255, 59, 48, 0.12)',
+    color: 'var(--danger)',
     padding: '10px',
-    borderRadius: '4px',
+    borderRadius: '10px',
     marginBottom: '20px',
     fontSize: '14px'
   },
@@ -170,40 +174,44 @@ const styles = {
   label: {
     display: 'block',
     marginBottom: '5px',
-    color: '#555',
+    color: 'var(--text-2)',
     fontSize: '14px'
   },
   input: {
     width: '100%',
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
+    padding: '11px 14px',
+    border: '1px solid var(--border)',
+    borderRadius: '10px',
     fontSize: '16px',
+    color: 'var(--text)',
+    backgroundColor: 'var(--surface-2)',
+    outline: 'none',
     boxSizing: 'border-box' as const
   },
   button: {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#1a73e8',
-    color: 'white',
+    backgroundColor: 'var(--accent)',
+    color: '#fff',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: '999px',
     fontSize: '16px',
     cursor: 'pointer',
-    fontWeight: 'bold' as const
+    fontWeight: '500' as const
   },
   divider: {
     textAlign: 'center' as const,
     margin: '20px 0',
-    color: '#999'
+    color: 'var(--text-3)'
   },
   googleButton: {
     width: '100%',
     padding: '12px',
-    backgroundColor: 'white',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
+    backgroundColor: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: '999px',
     fontSize: '16px',
+    color: 'var(--text)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -217,7 +225,7 @@ const styles = {
   footer: {
     textAlign: 'center' as const,
     marginTop: '20px',
-    color: '#666',
+    color: 'var(--text-2)',
     fontSize: '14px'
   }
 };

@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
-import { searchPhotos, ApiError } from "../api";
-import type { SearchResult } from "../api";
-import { DEMO_MODE, RESULTS_PER_SEARCH, STATIC_DEMO } from "../config/api";
-import type { ModelProgress } from "../demo/textEncoder";
-import PhotoLightbox from "./PhotoLightbox";
+import { useEffect, useState } from 'react';
+import { searchPhotos, ApiError } from '../api';
+import type { SearchResult } from '../api';
+import { DEMO_MODE, RESULTS_PER_SEARCH, STATIC_DEMO } from '../config/api';
+import type { ModelProgress } from '../demo/textEncoder';
+import PhotoLightbox from './PhotoLightbox';
+import PhotoTile from './PhotoTile';
 
 interface SearchResultsGalleryProps {
   query: string;
 }
 
-// Free Hugging Face Spaces go to sleep when idle, and the first request
-// after that waits while the container starts. Past this delay, say so.
+// A server that has been idle can take a while to answer the first request
+// (a free host starting its container). Past this delay, say so.
 const SLOW_AFTER_MS = 3000;
 
 export default function SearchResultsGallery({ query }: SearchResultsGalleryProps) {
@@ -19,7 +20,7 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
   const [slow, setSlow] = useState(false);
   const [model, setModel] = useState<ModelProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<SearchResult | null>(null);
+  const [selected, setSelected] = useState<SearchResult | null>(null);
 
   useEffect(() => {
     if (!query) return;
@@ -29,11 +30,11 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
     const controller = new AbortController();
     const slowTimer = window.setTimeout(() => setSlow(true), SLOW_AFTER_MS);
 
-    searchPhotos(query, RESULTS_PER_SEARCH, controller.signal, (p) => {
+    searchPhotos(query, RESULTS_PER_SEARCH, controller.signal, p => {
       if (!controller.signal.aborted) setModel(p);
     })
       .then(setResults)
-      .catch((err) => {
+      .catch(err => {
         if (controller.signal.aborted) return;
         setError(err instanceof ApiError || err instanceof Error ? err.message : String(err));
       })
@@ -50,136 +51,89 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
 
   if (!query) {
     return (
-      <div style={styles.emptyContainer}>
-        <div style={styles.emptyTitle}>Type something to search for</div>
-        <div style={styles.emptyText}>For example: “a dog on a beach”.</div>
+      <div className="empty">
+        <h1 className="empty__title">Search for a photo</h1>
+        <p className="empty__text">Describe what you're looking for, like “a dog on a beach”.</p>
       </div>
     );
   }
 
+  let body;
+  let meta = '';
   if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loadingText}>
-          {model
-            ? `Downloading the search model to your browser (only the first time): ${model.loadedMB.toFixed(0)} of ${model.totalMB.toFixed(0)} MB`
-            : slow && STATIC_DEMO
-            ? "Loading…"
-            : slow && DEMO_MODE
-            ? "Waking up the demo server… the first search after a quiet spell can take up to a minute."
-            : slow
-              ? "Still searching…"
-              : DEMO_MODE
-                ? "Searching…"
-                : "Searching your photos…"}
+    const downloading = model && model.loadedMB < model.totalMB;
+    meta = model ? 'Getting the search model ready…' : 'Searching…';
+    body = (
+      <>
+        {model && (
+          <div className="progress" role="status">
+            <p className="muted">
+              {downloading
+                ? `Downloading the search model: ${model.loadedMB.toFixed(0)} of ${model.totalMB.toFixed(0)} MB`
+                : 'Starting the search model…'}
+            </p>
+            <p className="section-meta">Only the first time. Your browser keeps it for next time.</p>
+            <div className="progress__track">
+              <div className="progress__bar" style={{ width: `${Math.min(100, (100 * model.loadedMB) / model.totalMB)}%` }} />
+            </div>
+          </div>
+        )}
+        {!model && slow && !STATIC_DEMO && (
+          <p className="notice">
+            {DEMO_MODE
+              ? 'Waking up the demo server… the first search after a quiet spell can take up to a minute.'
+              : 'Still searching…'}
+          </p>
+        )}
+        <div className="grid grid--large">
+          {Array.from({ length: RESULTS_PER_SEARCH }, (_, i) => (
+            <div key={i} className="skeleton" />
+          ))}
         </div>
+      </>
+    );
+  } else if (error) {
+    body = (
+      <div className="empty">
+        <h2 className="empty__title">Something went wrong</h2>
+        <p className="empty__text">{error}</p>
       </div>
     );
-  }
-
-  if (error) {
-    return (
-      <div style={styles.emptyContainer}>
-        <div style={styles.emptyTitle}>Something went wrong</div>
-        <div style={styles.emptyText}>{error}</div>
+  } else if (results.length === 0) {
+    body = (
+      <div className="empty">
+        <h2 className="empty__title">No matching photos</h2>
+        <p className="empty__text">
+          {DEMO_MODE ? 'Try a different description.' : 'Upload some photos first, or try a different description.'}
+        </p>
       </div>
     );
-  }
-
-  if (results.length === 0) {
-    return (
-      <div style={styles.emptyContainer}>
-        <div style={styles.emptyIcon}>🔍</div>
-        <div style={styles.emptyTitle}>No matching photos</div>
-        <div style={styles.emptyText}>
-          {DEMO_MODE ? "Try a different description." : "Upload some photos first, or try a different description."}
-        </div>
+  } else {
+    meta = `Top ${results.length} matches`;
+    body = (
+      <div className="grid grid--large">
+        {results.map(r => (
+          <PhotoTile key={r.url} src={r.thumbnailUrl} alt={`Result ${r.rank}`} onOpen={() => setSelected(r)} />
+        ))}
       </div>
     );
   }
 
   return (
     <>
-      <div style={styles.gallery}>
-        {results.map((image) => (
-          <div key={image.url} style={styles.imageCard} onClick={() => setSelectedImage(image)}>
-            <img
-              src={image.thumbnailUrl}
-              alt={`Result ${image.rank}`}
-              loading="lazy"
-              style={styles.image}
-            />
-          </div>
-        ))}
+      <div className="results-head">
+        <h1 className="results-title">“{query}”</h1>
+        {meta && <p className="section-meta">{meta}</p>}
       </div>
-
-      {selectedImage && (
+      {body}
+      {selected && (
         <PhotoLightbox
-          url={selectedImage.url}
-          alt={`Result ${selectedImage.rank}`}
-          caption={selectedImage.caption}
-          onClose={() => setSelectedImage(null)}
+          url={selected.url}
+          alt={`Result ${selected.rank}`}
+          caption={selected.caption}
+          onClose={() => setSelected(null)}
         />
       )}
     </>
   );
 }
-
-const styles = {
-  gallery: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-    gap: "8px",
-    padding: "16px",
-  },
-  imageCard: {
-    position: "relative" as const,
-    paddingBottom: "100%",
-    backgroundColor: "#282828",
-    borderRadius: "8px",
-    overflow: "hidden",
-    cursor: "pointer",
-    transition: "transform 0.2s ease, boxShadow 0.2s ease",
-  },
-  image: {
-    position: "absolute" as const,
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover" as const,
-  },
-  loadingContainer: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "400px",
-  },
-  loadingText: {
-    color: "#e8eaed",
-    fontSize: "16px",
-  },
-  emptyContainer: {
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "400px",
-    padding: "40px",
-  },
-  emptyIcon: {
-    fontSize: "64px",
-    marginBottom: "16px",
-  },
-  emptyTitle: {
-    fontSize: "22px",
-    color: "#e8eaed",
-    marginBottom: "8px",
-    fontWeight: "400" as const,
-  },
-  emptyText: {
-    fontSize: "14px",
-    color: "#9aa0a6",
-    textAlign: "center" as const,
-  },
-};
