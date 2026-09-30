@@ -45,17 +45,30 @@ async function loadEncoder(): Promise<Encoder> {
   };
 }
 
+function getEncoder(): Promise<Encoder> {
+  if (!encoderPromise) {
+    encoderPromise = loadEncoder().catch(err => {
+      encoderPromise = null; // allow a retry after a failed download
+      throw err;
+    });
+  }
+  return encoderPromise;
+}
+
+/**
+ * Start downloading and loading the model now, so a search typed later
+ * doesn't wait for it. Safe to call any number of times. A failure here is
+ * ignored: the next search tries again and reports it.
+ */
+export function preloadEncoder(): void {
+  getEncoder().catch(() => {});
+}
+
 /** Embed a query with CLIP in the browser. The first call downloads the model. */
 export async function encodeText(text: string, onProgress?: (p: ModelProgress) => void): Promise<Float32Array> {
   if (onProgress) listeners.add(onProgress);
   try {
-    if (!encoderPromise) {
-      encoderPromise = loadEncoder().catch(err => {
-        encoderPromise = null; // allow a retry after a failed download
-        throw err;
-      });
-    }
-    const encode = await encoderPromise;
+    const encode = await getEncoder();
     return await encode(text);
   } finally {
     if (onProgress) listeners.delete(onProgress);

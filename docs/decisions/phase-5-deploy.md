@@ -32,8 +32,12 @@ The first choice, an 8-bit quantised model picked for its small download, failed
 
 8-bit weights cost this model about 10 points of Recall@5, so the demo uses fp16: identical results at half the size of fp32. The model name and precision live in one file (`src/demo/modelConfig.ts`) that both the page and the check import, so they cannot drift apart.
 
-### 6. Nothing heavy loads until it is needed
-The landing page and example searches need only the 5 MB of data. The example searches' query vectors are computed by the Python model at export time, so clicking one returns results immediately. The model library (a separate code chunk) and the model are fetched only when a visitor types a search of their own, with a progress message, and the browser caches them for next time.
+### 6. The model loads early where that is cheap, and never blocks the page
+The landing page and example searches need only the 5 MB of data. The example searches' query vectors are computed by the Python model at export time, so clicking one returns results immediately. The model library (a separate code chunk) and the 127 MB model are fetched in the background so that a typed search is instant too, but only when that is cheap (`src/demo/preload.ts`):
+- shortly after the first photos load, on a computer or a connection the browser reports as Wi-Fi or wired, unless it asks to save data or reports a slow connection;
+- otherwise, as soon as the visitor taps or types in the search box, on any device. Phones on mobile data therefore never download it just for visiting.
+
+A search that starts while the download is running waits for the same download, with a progress bar. The browser caches the model, so later visits skip the download.
 
 ### 7. Direct links work on Vercel
 The frontend is a single-page app, so a link like `/result?q=dog` has no file behind it. `vercel.json` sends every path that is not a real file to `index.html`, so shared and refreshed result links load instead of returning 404.
@@ -42,5 +46,5 @@ The frontend is a single-page app, so a link like `/result?q=dog` has no file be
 `@huggingface/transformers` depends on `onnxruntime-node`, whose install step downloads large optional GPU binaries. Neither the browser nor the verification script needs them, so `frontend/.npmrc` skips that step, on developer machines and on Vercel alike.
 
 ### Known limits
-- The first typed search waits for a 127 MB model download; after that the browser has it cached. Example searches never need it.
+- A search typed before the background download finishes still waits for the rest of it (127 MB on the first visit only). Example searches never need the model.
 - The demo shows 384 px thumbnails only, not full-size images.

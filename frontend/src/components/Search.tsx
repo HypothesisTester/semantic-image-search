@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DEMO_MODE } from '../config/api';
+import { preloadSearchModel } from '../demo/preload';
 
 interface SearchProps {
   /** 'hero' is the large field on the demo's landing page. */
@@ -40,7 +41,13 @@ export default function Search({ variant = 'header', autoFocus = false }: Search
         autoFocus={autoFocus}
         enterKeyHint="search"
         value={query}
-        onChange={e => setQuery(e.target.value)}
+        // Tapping or typing starts the model download; not focus, which the
+        // landing page's autofocus would trigger on every visit.
+        onPointerDown={preloadSearchModel}
+        onChange={e => {
+          preloadSearchModel();
+          setQuery(e.target.value);
+        }}
       />
     </form>
   );
