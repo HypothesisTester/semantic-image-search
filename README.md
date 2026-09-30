@@ -2,7 +2,7 @@
 
 Search your photos with natural language ("dog on a beach", "birthday cake") using CLIP embeddings and a FAISS vector index.
 
-> Work in progress. The backend is being rebuilt; see the roadmap below.
+**Live demo: https://semantic-image-search-lime.vercel.app** searches 5,000 COCO photos entirely in your browser.
 
 ## Structure
 
@@ -23,7 +23,7 @@ docs/decisions/    Design decisions for each phase
 - [x] COCO index and benchmark (Recall@K, latency): see `backend/bench/results/`
 - [x] Indexing and search services, Docker Compose
 - [x] Frontend: token auth, uploads to the indexer, demo mode
-- [ ] Public demo (Hugging Face Spaces + Vercel)
+- [x] Public demo: runs in the browser, hosted on Vercel with its data on Hugging Face
 
 ## Running the backend
 
