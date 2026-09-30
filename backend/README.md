@@ -37,6 +37,17 @@ python -m demo.build_index
 
 `download_coco` fetches about 1 GB. `evaluate` writes `bench/results/coco_val2017.md` and `.json`.
 
+## Publishing the public demo
+
+The public demo runs entirely in the browser. After `python -m demo.build_index`, and signing in once with `hf auth login`:
+
+```bash
+python -m demo.export_static
+python -m demo.deploy_static
+```
+
+The first writes the vectors, photo list and thumbnails to `data/demo/static/`, and reports search accuracy with the smaller float16 vectors. The second uploads them to a free public Hugging Face dataset. See `docs/decisions/phase-5-deploy.md`.
+
 ## Smoke test against Docker
 
 With `docker compose up` running (and the COCO data downloaded):

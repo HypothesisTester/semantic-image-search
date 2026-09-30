@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { REPO_URL } from '../config/api';
+import { REPO_URL, STATIC_DEMO } from '../config/api';
 import { browseDemo } from '../api';
 import type { BrowsePage } from '../api';
 import PhotoLightbox from './PhotoLightbox';
@@ -77,7 +77,9 @@ export default function DemoHome() {
         {error && <div style={styles.notice}>Could not load photos: {error}</div>}
         {slow && photos.length === 0 && (
           <div style={styles.notice}>
-            Waking up the demo server… this can take up to a minute after a quiet spell.
+            {STATIC_DEMO
+              ? 'Loading the photos…'
+              : 'Waking up the demo server… this can take up to a minute after a quiet spell.'}
           </div>
         )}
         <div style={styles.grid}>
@@ -101,9 +103,20 @@ export default function DemoHome() {
           <p style={styles.howText}>
             OpenAI's CLIP model maps photos and text into the same 512-dimensional space, so a
             description and a photo of the same thing end up close together. Every photo was embedded
-            once, ahead of time. Each search embeds your text and finds the nearest photos with an
-            exact FAISS inner-product search.
+            once, ahead of time.
           </p>
+          {STATIC_DEMO ? (
+            <p style={styles.howText}>
+              This demo runs entirely in your browser, with no server. Your search is embedded by
+              CLIP's text encoder running in this page (downloaded once, the first time you type your
+              own search), then compared with all 5,000 photos directly.
+            </p>
+          ) : (
+            <p style={styles.howText}>
+              Each search embeds your text on the server and finds the nearest photos with an exact
+              FAISS inner-product search.
+            </p>
+          )}
           <p style={styles.howText}>
             On this dataset the correct photo is in the top 5 for 54.8% of human-written captions
             (Recall@5), in line with published results for this model. The full app adds sign-in and

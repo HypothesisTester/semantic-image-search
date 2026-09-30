@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { searchPhotos, ApiError } from "../api";
 import type { SearchResult } from "../api";
-import { DEMO_MODE, RESULTS_PER_SEARCH } from "../config/api";
+import { DEMO_MODE, RESULTS_PER_SEARCH, STATIC_DEMO } from "../config/api";
+import type { ModelProgress } from "../demo/textEncoder";
 import PhotoLightbox from "./PhotoLightbox";
 
 interface SearchResultsGalleryProps {
@@ -16,6 +17,7 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [slow, setSlow] = useState(false);
+  const [model, setModel] = useState<ModelProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<SearchResult | null>(null);
 
@@ -27,7 +29,9 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
     const controller = new AbortController();
     const slowTimer = window.setTimeout(() => setSlow(true), SLOW_AFTER_MS);
 
-    searchPhotos(query, RESULTS_PER_SEARCH, controller.signal)
+    searchPhotos(query, RESULTS_PER_SEARCH, controller.signal, (p) => {
+      if (!controller.signal.aborted) setModel(p);
+    })
       .then(setResults)
       .catch((err) => {
         if (controller.signal.aborted) return;
@@ -57,7 +61,11 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.loadingText}>
-          {slow && DEMO_MODE
+          {model
+            ? `Downloading the search model to your browser (only the first time): ${model.loadedMB.toFixed(0)} of ${model.totalMB.toFixed(0)} MB`
+            : slow && STATIC_DEMO
+            ? "Loading…"
+            : slow && DEMO_MODE
             ? "Waking up the demo server… the first search after a quiet spell can take up to a minute."
             : slow
               ? "Still searching…"

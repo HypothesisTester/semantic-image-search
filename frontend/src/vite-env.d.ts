@@ -4,6 +4,7 @@ interface ImportMetaEnv {
   readonly VITE_INDEX_URL?: string;
   readonly VITE_SEARCH_URL?: string;
   readonly VITE_DEMO_MODE?: string;
+  readonly VITE_DEMO_DATA_URL?: string;
 }
 
 interface ImportMeta {
