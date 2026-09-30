@@ -7,10 +7,11 @@ Search your photos with natural language ("dog on a beach", "birthday cake") usi
 ## Structure
 
 ```
-frontend/   React + TypeScript app (Vite, Firebase Auth, Firestore)
-backend/    Shared core now; indexing and search services next
-demo/       Public read-only demo over the COCO val2017 images     [coming]
-bench/      Retrieval quality and latency benchmarks               [coming]
+frontend/          React + TypeScript app (Vite, Firebase Auth, Firestore)
+backend/common/    Shared core: CLIP encoder, image decoding, index store, auth
+backend/bench/     COCO val2017 benchmark: Recall@K, latency, scaling
+backend/demo/      Builds the public demo's index and thumbnails
+docs/decisions/    Design decisions for each phase
 ```
 
 ## Roadmap
