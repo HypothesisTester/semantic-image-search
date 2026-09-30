@@ -85,10 +85,18 @@ export interface BrowsePage {
   items: { url: string; thumbnailUrl: string; caption?: string }[];
 }
 
+// The demo's search code is a separate file, loaded on first use. If loading it
+// fails, the likeliest cause is a new deployment since this page was opened.
+function loadStaticDemo() {
+  return import('./demo/staticDemo').catch(() => {
+    throw new Error('This page is out of date. Refresh it to load the latest version.');
+  });
+}
+
 /** A page of the demo's photos, for its landing page (demo mode only). */
 export async function browseDemo(offset: number, limit: number, signal?: AbortSignal): Promise<BrowsePage> {
   if (STATIC_DEMO) {
-    const { browseStatic } = await import('./demo/staticDemo');
+    const { browseStatic } = await loadStaticDemo();
     return browseStatic(DEMO_DATA_URL, offset, limit);
   }
   const res = await send(`${SEARCH_URL}/browse?offset=${offset}&limit=${limit}`, { signal });
@@ -98,7 +106,7 @@ export async function browseDemo(offset: number, limit: number, signal?: AbortSi
 /** Demo only: start downloading the search data in the background. */
 export function preloadSearchData(): void {
   if (!STATIC_DEMO) return;
-  import('./demo/staticDemo').then(m => m.preloadIndex(DEMO_DATA_URL)).catch(() => {});
+  loadStaticDemo().then(m => m.preloadIndex(DEMO_DATA_URL)).catch(() => {});
 }
 
 /** Search the user's photos (or the demo's) by text. */
@@ -109,7 +117,7 @@ export async function searchPhotos(
   onModelProgress?: (p: ModelProgress) => void,
 ): Promise<SearchResult[]> {
   if (STATIC_DEMO) {
-    const { searchStatic } = await import('./demo/staticDemo');
+    const { searchStatic } = await loadStaticDemo();
     return searchStatic(DEMO_DATA_URL, text, k, onModelProgress);
   }
   const res = await send(`${SEARCH_URL}/search`, {
