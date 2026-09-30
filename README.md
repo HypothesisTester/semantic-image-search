@@ -7,7 +7,7 @@ Search your photos with natural language ("dog on a beach", "birthday cake") usi
 ## Structure
 
 ```
-frontend/          React + TypeScript app (Vite, Firebase Auth, Firestore)
+frontend/          React + TypeScript app (Vite, Firebase Auth, Firestore); the demo searches in the browser
 backend/common/    Shared core: CLIP encoder, image decoding, index store, auth
 backend/bench/     COCO val2017 benchmark: Recall@K, latency, scaling
 backend/demo/      Builds the public demo's index and thumbnails
@@ -49,10 +49,14 @@ npm ci
 npm run dev
 ```
 
-Then open http://localhost:5173. To run the public demo instead (needs the `demo` profile running):
+Then open http://localhost:5173. To run the demo instead, backed by the local demo service (needs the `demo` profile running):
 
 ```bash
 VITE_DEMO_MODE=true npm run dev
 ```
 
+The public demo runs entirely in the browser instead, with its data on Hugging Face; see `backend/README.md` and `docs/decisions/phase-5-deploy.md`.
+
 Service addresses can be changed in `frontend/.env.local`; see `frontend/.env.example`.
+
+The demo's GitHub button uses GitHub's official mark from https://github.com/logos (`GitHub_Invertocat_Black.svg` and `GitHub_Invertocat_White.svg`, saved in `frontend/public/` as `github-mark.svg` and `github-mark-white.svg`). Without them it shows a plain code icon.

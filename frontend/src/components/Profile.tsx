@@ -95,7 +95,7 @@ export default function Profile() {
                 type="email"
                 value={currentUser?.email || ''}
                 disabled
-                style={{...styles.input, backgroundColor: '#f5f5f5', cursor: 'not-allowed'}}
+                style={{...styles.input, backgroundColor: 'var(--bg)', cursor: 'not-allowed'}}
               />
               <span style={styles.helpText}>Email cannot be changed</span>
             </div>
@@ -134,7 +134,7 @@ export default function Profile() {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: '#202124', // dark background
+    backgroundColor: 'var(--bg)', // dark background
     paddingTop: '40px'
   },
   content: {
@@ -143,16 +143,16 @@ const styles = {
     padding: '20px'
   },
   card: {
-    backgroundColor: '#292a2d',  // card background used in dropdowns
+    backgroundColor: 'var(--surface)',  // card background used in dropdowns
     padding: '40px',
     borderRadius: '12px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-    border: '1px solid #3c4043'
+    border: '1px solid var(--border)'
   },
   title: {
     fontSize: '28px',
     fontWeight: 'bold' as const,
-    color: '#e8eaed',      // light text
+    color: 'var(--text)',      // light text
     marginBottom: '30px',
     textAlign: 'center' as const
   },
@@ -167,14 +167,14 @@ const styles = {
     height: '120px',
     borderRadius: '50%',
     objectFit: 'cover' as const,
-    border: '4px solid #3c4043' // dark border
+    border: '4px solid var(--border)' // dark border
   },
   avatarCircle: {
     width: '120px',
     height: '120px',
     borderRadius: '50%',
-    backgroundColor: '#8ab4f8', // your default avatar color
-    color: '#202124',
+    backgroundColor: 'var(--accent)', // your default avatar color
+    color: '#fff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -191,8 +191,8 @@ const styles = {
   },
   uploadButton: {
     padding: '10px 24px',
-    backgroundColor: '#8ab4f8', // light blue
-    color: '#202124',
+    backgroundColor: 'var(--accent)', // light blue
+    color: '#fff',
     border: 'none',
     borderRadius: '6px',
     fontSize: '14px',
@@ -205,26 +205,26 @@ const styles = {
   },
   fileName: {
     fontSize: '12px',
-    color: '#9aa0a6'
+    color: 'var(--text-2)'
   },
 
   success: {
-    backgroundColor: '#1e442f',
-    color: '#8cffc1',
+    backgroundColor: 'rgba(52, 199, 89, 0.14)',
+    color: 'var(--success)',
     padding: '12px',
     borderRadius: '4px',
     marginBottom: '20px',
     fontSize: '14px',
-    border: '1px solid #2b6549'
+    border: '1px solid transparent'
   },
   error: {
-    backgroundColor: '#3a1e1e',
-    color: '#ffb3b3',
+    backgroundColor: 'rgba(255, 59, 48, 0.12)',
+    color: 'var(--danger)',
     padding: '12px',
     borderRadius: '4px',
     marginBottom: '20px',
     fontSize: '14px',
-    border: '1px solid #7a3a3a'
+    border: '1px solid transparent'
   },
 
   form: {
@@ -237,18 +237,18 @@ const styles = {
   label: {
     display: 'block',
     marginBottom: '8px',
-    color: '#e8eaed',
+    color: 'var(--text)',
     fontSize: '14px',
     fontWeight: '600' as const
   },
   input: {
     width: '100%',
     padding: '12px',
-    border: '1px solid #5f6368',
+    border: '1px solid var(--border)',
     borderRadius: '6px',
     fontSize: '16px',
-    backgroundColor: '#303134',      // dark input bg
-    color: '#e8eaed',                 // light text
+    backgroundColor: 'var(--surface-2)',      // dark input bg
+    color: 'var(--text)',                 // light text
     boxSizing: 'border-box' as const,
     transition: 'border-color 0.2s'
   },
@@ -256,7 +256,7 @@ const styles = {
     display: 'block',
     marginTop: '6px',
     fontSize: '12px',
-    color: '#9aa0a6'
+    color: 'var(--text-2)'
   },
 
   buttonGroup: {
@@ -267,9 +267,9 @@ const styles = {
   cancelButton: {
     flex: 1,
     padding: '12px',
-    backgroundColor: '#3c4043',
-    color: '#e8eaed',
-    border: '1px solid #5f6368',
+    backgroundColor: 'var(--border)',
+    color: 'var(--text)',
+    border: '1px solid var(--border)',
     borderRadius: '6px',
     fontSize: '16px',
     cursor: 'pointer',
@@ -279,8 +279,8 @@ const styles = {
   saveButton: {
     flex: 1,
     padding: '12px',
-    backgroundColor: '#8ab4f8',
-    color: '#202124',
+    backgroundColor: 'var(--accent)',
+    color: '#fff',
     border: 'none',
     borderRadius: '6px',
     fontSize: '16px',

@@ -6,7 +6,8 @@
 // automatically shortly before it expires.
 
 import { auth } from './config/firebase';
-import { DEMO_MODE, INDEX_URL, SEARCH_URL } from './config/api';
+import { DEMO_DATA_URL, DEMO_MODE, INDEX_URL, SEARCH_URL, STATIC_DEMO } from './config/api';
+import type { ModelProgress } from './demo/textEncoder';
 
 export class ApiError extends Error {
   status: number;
@@ -85,6 +86,10 @@ export interface BrowsePage {
 
 /** A page of the demo's photos, for its landing page (demo mode only). */
 export async function browseDemo(offset: number, limit: number, signal?: AbortSignal): Promise<BrowsePage> {
+  if (STATIC_DEMO) {
+    const { browseStatic } = await import('./demo/staticDemo');
+    return browseStatic(DEMO_DATA_URL, offset, limit);
+  }
   const res = await send(`${SEARCH_URL}/browse?offset=${offset}&limit=${limit}`, { signal });
   return (await res.json()) as BrowsePage;
 }
@@ -94,7 +99,12 @@ export async function searchPhotos(
   text: string,
   k: number,
   signal?: AbortSignal,
+  onModelProgress?: (p: ModelProgress) => void,
 ): Promise<SearchResult[]> {
+  if (STATIC_DEMO) {
+    const { searchStatic } = await import('./demo/staticDemo');
+    return searchStatic(DEMO_DATA_URL, text, k, onModelProgress);
+  }
   const res = await send(`${SEARCH_URL}/search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },

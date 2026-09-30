@@ -5,6 +5,7 @@ import {
   Navigate,
   useLocation,
 } from 'react-router-dom';
+import { useEffect } from 'react';
 import type { JSX } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DEMO_MODE } from './config/api';
@@ -15,6 +16,7 @@ import Profile from './components/Profile';
 import Result from './components/result';
 import Navbar from './components/Navbar';
 import DemoHome from './components/DemoHome';
+import { schedulePreload } from './demo/preload';
 
 function PrivateRoute({ children }: { children: JSX.Element }): JSX.Element {
   const { currentUser } = useAuth();
@@ -23,6 +25,10 @@ function PrivateRoute({ children }: { children: JSX.Element }): JSX.Element {
 
 // The public demo: no accounts, just search over the COCO images.
 function DemoContent() {
+  // Fetch the search model in the background where that is cheap (see demo/preload.ts),
+  // so a typed search is instant. The first photos load first.
+  useEffect(() => schedulePreload(), []);
+
   return (
     <>
       <Navbar />

@@ -25,7 +25,7 @@ export default function UploadProgress({ uploads, onClose }: UploadProgressProps
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
   }, []);
 
@@ -80,12 +80,12 @@ export default function UploadProgress({ uploads, onClose }: UploadProgressProps
                   <div style={styles.statusText}>Uploading...</div>
                 )}
                 {upload.status === 'completed' && (
-                  <div style={{...styles.statusText, color: '#28a745'}}>
+                  <div style={{...styles.statusText, color: 'var(--success)'}}>
                     Completed ✓
                   </div>
                 )}
                 {upload.status === 'error' && (
-                  <div style={{...styles.statusText, color: '#dc3545'}}>
+                  <div style={{...styles.statusText, color: 'var(--danger)'}}>
                     Failed: {upload.error}
                   </div>
                 )}
@@ -127,7 +127,7 @@ const styles = {
     padding: '20px'
   },
   modal: {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--surface)',
     borderRadius: '12px',
     maxWidth: '600px',
     width: '100%',
@@ -138,30 +138,30 @@ const styles = {
   },
   header: {
     padding: '24px',
-    borderBottom: '1px solid #e0e0e0'
+    borderBottom: '1px solid var(--border)'
   },
   title: {
     margin: 0,
     fontSize: '24px',
     fontWeight: 'bold' as const,
-    color: '#333'
+    color: 'var(--text)'
   },
   stats: {
     marginTop: '8px',
     fontSize: '14px',
-    color: '#666'
+    color: 'var(--text-2)'
   },
   errorStat: {
-    color: '#dc3545'
+    color: 'var(--danger)'
   },
   progressBar: {
     height: '6px',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: 'var(--border)',
     position: 'relative' as const
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#1a73e8',
+    backgroundColor: 'var(--accent)',
     transition: 'width 0.3s ease'
   },
   uploadList: {
@@ -174,7 +174,7 @@ const styles = {
     gap: '16px',
     padding: '12px',
     marginBottom: '8px',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: 'var(--surface-2)',
     borderRadius: '8px',
     alignItems: 'center'
   },
@@ -185,7 +185,7 @@ const styles = {
     flexShrink: 0,
     borderRadius: '6px',
     overflow: 'hidden',
-    backgroundColor: '#e0e0e0'
+    backgroundColor: 'var(--border)'
   },
   previewImage: {
     width: '100%',
@@ -200,14 +200,14 @@ const styles = {
   fileName: {
     fontSize: '14px',
     fontWeight: '600' as const,
-    color: '#333',
+    color: 'var(--text)',
     whiteSpace: 'nowrap' as const,
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
   fileSize: {
     fontSize: '12px',
-    color: '#666',
+    color: 'var(--text-2)',
     marginTop: '4px'
   },
   statusText: {
@@ -217,13 +217,13 @@ const styles = {
   },
   footer: {
     padding: '16px 24px',
-    borderTop: '1px solid #e0e0e0'
+    borderTop: '1px solid var(--border)'
   },
   doneButton: {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#1a73e8',
-    color: 'white',
+    backgroundColor: 'var(--accent)',
+    color: '#fff',
     border: 'none',
     borderRadius: '6px',
     fontSize: '16px',

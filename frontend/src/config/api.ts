@@ -9,6 +9,15 @@ export const DEMO_MODE = env.VITE_DEMO_MODE === 'true';
 
 const trimSlash = (url: string) => url.replace(/\/+$/, '');
 
+/**
+ * Where the in-browser demo's data lives (a Hugging Face dataset's
+ * .../resolve/main URL). When set, the demo needs no server at all: search
+ * runs in the page. When unset, the demo calls the search service instead
+ * (docker compose --profile demo).
+ */
+export const DEMO_DATA_URL = trimSlash(env.VITE_DEMO_DATA_URL ?? '');
+export const STATIC_DEMO = DEMO_MODE && DEMO_DATA_URL !== '';
+
 /** The indexer service (uploads). Unused in demo mode. */
 export const INDEX_URL = trimSlash(env.VITE_INDEX_URL ?? 'http://localhost:8001');
 

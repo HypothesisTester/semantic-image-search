@@ -1,54 +1,14 @@
-// result.tsx
-import { useNavigate, useSearchParams } from "react-router-dom";
-import SearchResultsGallery from "../components/SearchResultsGallery";
-import { DEMO_MODE } from "../config/api";
+import { useSearchParams } from 'react-router-dom';
+import SearchResultsGallery from './SearchResultsGallery';
 
 export default function Result() {
-  const navigate = useNavigate();
   const [params] = useSearchParams();
-  const query = (params.get("q") ?? "").trim();
-
-  const pageStyles = {
-    container: {
-      minHeight: "100vh",
-      backgroundColor: "#202124",
-      color: "#e8eaed",
-      padding: "16px 24px",
-    },
-    backButton: {
-      marginBottom: "16px",
-      padding: "8px 12px",
-      borderRadius: "8px",
-      border: "1px solid #3c4043",
-      backgroundColor: "transparent",
-      color: "#e8eaed",
-      cursor: "pointer",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "8px",
-      fontSize: "14px",
-    },
-    heading: {
-      fontSize: "24px",
-      marginBottom: "8px",
-    },
-    meta: {
-      fontSize: "14px",
-      marginBottom: "4px",
-      color: "#9aa0a6",
-    },
-  } as const;
+  const query = (params.get('q') ?? '').trim();
 
   return (
-    <div style={pageStyles.container}>
-      <button style={pageStyles.backButton} onClick={() => navigate(DEMO_MODE ? "/" : "/home")}>
-        ← Back
-      </button>
-
-      <h1 style={pageStyles.heading}>Search Results</h1>
-      {query && <div style={pageStyles.meta}>“{query}”</div>}
-
+    <main className="page">
+      {/* Remounted per query, so each search starts from a clean state. */}
       <SearchResultsGallery key={query} query={query} />
-    </div>
+    </main>
   );
 }
