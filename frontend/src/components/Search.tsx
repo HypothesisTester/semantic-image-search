@@ -1,29 +1,22 @@
 import { useState } from "react";
-import type { FormEvent, ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import type { FormEvent, ChangeEvent, CSSProperties } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface SearchProps {
-  styles: any;
-  userId: string | undefined;
+  styles: Record<string, CSSProperties>;
 }
 
-export default function Search({ styles, userId }: SearchProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+export default function Search({ styles }: SearchProps) {
+  const [params] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(params.get("q") ?? "");
   const navigate = useNavigate();
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-
     const trimmed = searchQuery.trim();
-    if (!trimmed) {
-      return;
-    }
-    navigate("/result", {
-      state: {
-        query: trimmed,
-        userId: userId || null,
-      },
-    });
+    if (!trimmed) return;
+    // The query lives in the URL, so results can be refreshed, bookmarked and shared.
+    navigate(`/result?q=${encodeURIComponent(trimmed)}`);
   };
 
   return (
@@ -39,10 +32,10 @@ export default function Search({ styles, userId }: SearchProps) {
         <input
           type="text"
           placeholder="Search your photos"
+          aria-label="Search your photos"
+          maxLength={200}
           value={searchQuery}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setSearchQuery(e.target.value)
-          }
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           style={styles.searchInput}
         />
       </div>

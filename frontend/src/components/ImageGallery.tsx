@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import type { Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import ImageViewer from './ImageViewer';
@@ -7,10 +8,11 @@ import ImageViewer from './ImageViewer';
 interface ImageData {
   id: string;
   url: string;
+  thumbnailUrl?: string;
   fileName: string;
   fileSize: number;
   fileType: string;
-  uploadedAt: any;
+  uploadedAt: Timestamp | null;
 }
 
 export default function ImageGallery() {
@@ -70,9 +72,10 @@ export default function ImageGallery() {
             style={styles.imageCard}
             onClick={() => setSelectedImage(image)}
           >
-            <img 
-              src={image.url} 
+            <img
+              src={image.thumbnailUrl ?? image.url}
               alt={image.fileName}
+              loading="lazy"
               style={styles.image}
             />
           </div>

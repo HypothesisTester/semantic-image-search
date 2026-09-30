@@ -1,11 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 // Firebase web config. These values identify the project; they are not secrets.
 // Access to data is controlled by Firebase Auth and the Firestore security rules
-// (see firestore.rules at the repo root).
+// (see firestore.rules at the repo root). Photos themselves are stored by the
+// backend's indexer, not Firebase Storage.
 const firebaseConfig = {
   apiKey: "AIzaSyBONGMY72a-f3lTwIb-M-KCGar4hUckzv8",
   authDomain: "semantic-image-search-666d0.firebaseapp.com",
@@ -18,5 +18,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
 export default app;

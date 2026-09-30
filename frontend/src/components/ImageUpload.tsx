@@ -1,258 +1,129 @@
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { storage, db } from '../config/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { UPLOAD_BATCH_SIZE } from '../config/api';
+import { uploadPhotos } from '../api';
+import type { UploadResult } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import UploadProgress from './UploadProgress';
 import type { UploadItem } from './UploadProgress';
 
 interface ImageUploadProps {
-  onUploadStart?: () => void;
-  onUploadComplete?: (urls: string[]) => void;
   onUploadError?: (error: string) => void;
 }
 
-export default function ImageUpload({ 
-  onUploadStart, 
-  onUploadComplete, 
-  onUploadError 
-}: ImageUploadProps) {
-  
+// Formats the indexer can decode. DNG needs the backend's optional rawpy
+// dependency; without it the indexer rejects the file with a clear message.
+const ALLOWED_EXTENSIONS = [
+  '.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp', '.gif', '.bmp', '.tiff', '.tif', '.dng',
+];
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+export default function ImageUpload({ onUploadError }: ImageUploadProps) {
   const { currentUser } = useAuth();
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [showProgress, setShowProgress] = useState(false);
 
-  // Allowed image formats
-  const ALLOWED_FORMATS = [
-    'image/jpeg',
-    'image/jpg', 
-    'image/png',
-    'image/heic',
-    'image/heif',
-    'image/webp',
-    'image/gif',
-    'image/bmp',
-    'image/tiff',
-    'image/x-adobe-dng',
-    'image/dng'
-  ];
+  const update = (ids: string[], patch: Partial<UploadItem>) =>
+    setUploads(prev => prev.map(u => (ids.includes(u.id) ? { ...u, ...patch } : u)));
 
-  const ALLOWED_EXTENSIONS = [
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.heic',
-    '.heif',
-    '.webp',
-    '.gif',
-    '.bmp',
-    '.tiff',
-    '.tif',
-    '.dng'
-  ];
-
-  const uploadImageToStorage = async (file: File, uploadId: string): Promise<{ url: string; path: string }> => {
-    if (!currentUser) throw new Error('User not authenticated');
-
-    // Update status to uploading
-    setUploads(prev => prev.map(u => 
-      u.id === uploadId ? { ...u, status: 'uploading' as const } : u
-    ));
-
-    const timestamp = Date.now();
-    const fileExtension = file.name.split('.').pop();
-    // Format: userId-timestamp.extension
-    const fileName = `${currentUser.uid}-${timestamp}.${fileExtension}`;
-    const storagePath = `user-images/${currentUser.uid}/${fileName}`;
-    
-    const storageRef = ref(storage, storagePath);
-
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-
-    return { url: downloadURL, path: storagePath };
-  };
-
-  const saveImageToFirestore = async (
-    url: string, 
-    fileName: string, 
-    fileSize: number, 
-    fileType: string, 
-    storagePath: string
-  ) => {
-    if (!currentUser) throw new Error('User not authenticated');
-
-    const imageDoc = await addDoc(collection(db, 'users', currentUser.uid, 'images'), {
-      url: url,
-      storagePath: storagePath,
-      fileName: fileName,
-      fileSize: fileSize,
-      fileType: fileType,
+  // The gallery reads photo records from Firestore. Each record is keyed by
+  // the photo id the indexer returns, which is derived from the photo's
+  // content: uploading the same photo again rewrites its record instead of
+  // adding a second copy to the gallery.
+  const saveRecord = async (uid: string, file: File, result: UploadResult) => {
+    await setDoc(doc(db, 'users', uid, 'images', result.id!), {
+      url: result.url,
+      thumbnailUrl: result.thumbnailUrl,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
       uploadedAt: serverTimestamp(),
     });
-
-    return imageDoc.id;
   };
 
-  // Function to send data to backend
-  const sendToBackend = async (userId: string, photoURLs: string[]) => {
-    
+  const uploadBatch = async (uid: string, batch: UploadItem[]) => {
+    const ids = batch.map(u => u.id);
+    update(ids, { status: 'uploading' });
+    let results: UploadResult[];
     try {
-
-      const response = await fetch('https://semantic-search-backend-628129189292.us-central1.run.app/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userId,
-          photoURLs: photoURLs,
-        }),
-      });
-
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      return data;
-    } catch (error) {
-      throw error;
+      results = await uploadPhotos(batch.map(u => u.file));
+    } catch (err) {
+      update(ids, { status: 'error', error: err instanceof Error ? err.message : String(err) });
+      return;
     }
-  };
-
-  const processUpload = async (uploadItem: UploadItem): Promise<string | null> => {
-    try {
-      // Upload to storage
-      const { url: downloadURL, path: storagePath } = await uploadImageToStorage(uploadItem.file, uploadItem.id);
-
-      // Save to Firestore
-      await saveImageToFirestore(
-        downloadURL, 
-        uploadItem.file.name, 
-        uploadItem.file.size, 
-        uploadItem.file.type,
-        storagePath
-      );
-
-      // Update status to completed
-      setUploads(prev => prev.map(u => 
-        u.id === uploadItem.id 
-          ? { ...u, status: 'completed' as const, url: downloadURL, progress: 100 } 
-          : u
-      ));
-
-      
-      return downloadURL; // Return the URL
-
-    } catch (error: any) {
-      
-      // Update status to error
-      setUploads(prev => prev.map(u => 
-        u.id === uploadItem.id 
-          ? { ...u, status: 'error' as const, error: error.message } 
-          : u
-      ));
-      
-      return null; // Return null on error
-    }
+    await Promise.all(
+      batch.map(async (item, i) => {
+        const result = results[i];
+        if (!result?.ok) {
+          update([item.id], { status: 'error', error: result?.error ?? 'not processed' });
+          return;
+        }
+        try {
+          await saveRecord(uid, item.file, result);
+          URL.revokeObjectURL(item.preview);
+          // The server's JPEG thumbnail also works for HEIC, which most
+          // browsers cannot preview from the original file.
+          update([item.id], { status: 'completed', progress: 100, url: result.url, preview: result.thumbnailUrl! });
+        } catch (err) {
+          update([item.id], {
+            status: 'error',
+            error: `indexed, but not saved to your gallery: ${err instanceof Error ? err.message : err}`,
+          });
+        }
+      }),
+    );
   };
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    
-    if (!files || files.length === 0) {
-      return;
-    }
+    const input = e.target;
+    const files = Array.from(input.files ?? []);
+    input.value = ''; // allow choosing the same files again later
+    if (files.length === 0) return;
 
     if (!currentUser) {
-      const errorMsg = 'You must be logged in to upload images';
-      if (onUploadError) {
-        onUploadError(errorMsg);
-      }
+      onUploadError?.('You must be logged in to upload images');
       return;
     }
 
-    // Validate files
-    const validFiles: File[] = [];
-    const invalidFiles: string[] = [];
-
-    Array.from(files).forEach(file => {
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const isValidType = ALLOWED_FORMATS.includes(file.type);
-      const isValidExtension = ALLOWED_EXTENSIONS.includes(fileExtension);
-
-      if (isValidType || isValidExtension) {
-        validFiles.push(file);
-      } else {
-        invalidFiles.push(file.name);
-      }
-    });
-
-    if (invalidFiles.length > 0) {
-      const errorMsg = `Invalid file format: ${invalidFiles.join(', ')}. Please upload images only.`;
-      if (onUploadError) {
-        onUploadError(errorMsg);
-      }
+    const isAllowed = (f: File) =>
+      ALLOWED_EXTENSIONS.includes('.' + (f.name.split('.').pop() ?? '').toLowerCase());
+    const valid = files.filter(isAllowed);
+    const invalid = files.filter(f => !isAllowed(f)).map(f => f.name);
+    if (invalid.length > 0) {
+      onUploadError?.(`Not an image format we support: ${invalid.join(', ')}`);
     }
+    if (valid.length === 0) return;
 
-    if (validFiles.length === 0) {
-      return;
-    }
-
-    // Create upload items with previews
-    const newUploads: UploadItem[] = validFiles.map(file => ({
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      file: file,
+    const items: UploadItem[] = valid.map(file => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      file,
       preview: URL.createObjectURL(file),
-      status: 'pending' as const,
-      progress: 0
+      status: 'pending',
+      progress: 0,
     }));
-
-    setUploads(newUploads);
+    setUploads(items);
     setShowProgress(true);
 
-    if (onUploadStart) {
-      onUploadStart();
+    // Batches go one after another: each is one request and one CLIP batch
+    // on the indexer, so sending them all at once would only queue them there.
+    for (const batch of chunk(items, UPLOAD_BATCH_SIZE)) {
+      await uploadBatch(currentUser.uid, batch);
     }
-
-    // Process all uploads and collect URLs
-    const uploadResults = await Promise.all(newUploads.map(upload => processUpload(upload)));
-
-    // Filter out null values (failed uploads)
-    const photoURLs = uploadResults.filter((url): url is string => url !== null);
-
-
-    if (photoURLs.length > 0) {
-      
-      if (onUploadComplete) {
-        onUploadComplete(photoURLs);
-      }
-
-      // Send to backend
-      if (currentUser) {
-        try {
-          await sendToBackend(currentUser.uid, photoURLs);
-        } catch (error) {
-        }
-      } else {
-        // User not authenticated, should not happen here
-      }
-    }
-
-    // Reset input
-    e.target.value = '';
   };
 
   const handleCloseProgress = () => {
     setShowProgress(false);
+    uploads.forEach(u => {
+      if (u.preview.startsWith('blob:')) URL.revokeObjectURL(u.preview);
+    });
     setUploads([]);
-    
-    // Clean up object URLs
-    uploads.forEach(upload => URL.revokeObjectURL(upload.preview));
   };
 
   return (

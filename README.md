@@ -22,7 +22,7 @@ docs/decisions/    Design decisions for each phase
 - [x] Core: CLIP embeddings, image decoding, per-user FAISS index store, token auth
 - [x] COCO index and benchmark (Recall@K, latency): see `backend/bench/results/`
 - [x] Indexing and search services, Docker Compose
-- [ ] Frontend: token auth, local uploads, demo mode
+- [x] Frontend: token auth, uploads to the indexer, demo mode
 - [ ] Public demo (Hugging Face Spaces + Vercel)
 
 ## Running the backend
@@ -41,8 +41,18 @@ docker compose --profile demo up --build
 
 ## Running the frontend
 
+With the backend running:
+
 ```bash
 cd frontend
 npm ci
 npm run dev
 ```
+
+Then open http://localhost:5173. To run the public demo instead (needs the `demo` profile running):
+
+```bash
+VITE_DEMO_MODE=true npm run dev
+```
+
+Service addresses can be changed in `frontend/.env.local`; see `frontend/.env.example`.

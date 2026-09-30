@@ -3,8 +3,55 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ImageUpload from './ImageUpload';
 import Search from "./Search";
+import { DEMO_MODE, REPO_URL } from '../config/api';
 
 export default function Navbar() {
+  const navigate = useNavigate();
+
+  return (
+    <nav style={styles.navbar}>
+      <div style={styles.container}>
+        {/* Logo */}
+        <div style={styles.leftSection}>
+          <div style={styles.logo} onClick={() => navigate(DEMO_MODE ? '/' : '/home')}>
+            <img
+              src="/imageintel.png"
+              alt="ImageIntel Logo"
+              style={{
+                width: "40px",
+                height: "40px",
+                objectFit: "contain"
+              }}
+            />
+
+            <span style={styles.logoText}>ImageIntel</span>
+            {DEMO_MODE && <span style={styles.demoBadge}>Demo</span>}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div style={styles.centerSection}>
+          <Search styles={styles} />
+        </div>
+
+        {/* Right Section */}
+        <div style={styles.rightSection}>
+          {DEMO_MODE ? (
+            <a href={REPO_URL} target="_blank" rel="noreferrer" style={styles.repoLink}>
+              Source on GitHub
+            </a>
+          ) : (
+            <AccountControls />
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// Upload button and profile menu. A separate component because it needs the
+// signed-in user, and the demo build has no sign-in at all.
+function AccountControls() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -18,7 +65,6 @@ export default function Navbar() {
     }
   }
 
-
   const getInitials = () => {
     if (currentUser?.displayName) {
       return currentUser.displayName
@@ -30,115 +76,68 @@ export default function Navbar() {
     return currentUser?.email?.[0].toUpperCase() || 'U';
   };
 
-  const handleUploadStart = () => {
-    // Something I guess
-  };
-
-  const handleUploadComplete = () => {
-    // Something I guess
-  };
-
-  const handleUploadError = (error: string) => {
-    // Something I guess
-    alert(error);
-  };
-
   return (
-    <nav style={styles.navbar}>
-      <div style={styles.container}>
-        {/* Logo */}
-        <div style={styles.leftSection}>
-          <div style={styles.logo} onClick={() => navigate('/home')}>
-            <img 
-              src="/imageintel.png" 
-              alt="ImageIntel Logo"
-              style={{
-                width: "40px",
-                height: "40px",
-                objectFit: "contain"
-              }}
+    <>
+      <ImageUpload onUploadError={(error) => alert(error)} />
+
+      {/* Profile Section */}
+      <div style={styles.profileSection}>
+        <div
+          style={styles.profileButton}
+          onClick={() => setShowDropdown(!showDropdown)}
+        >
+          {currentUser?.photoURL ? (
+            <img
+              src={currentUser.photoURL}
+              alt="Profile"
+              style={styles.profileImage}
             />
-
-            <span style={styles.logoText}>ImageIntel</span>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div style={styles.centerSection}>
-          <Search 
-            styles={styles} 
-            userId={currentUser?.uid}
-          />
-        </div>
-
-        {/* Right Section */}
-        <div style={styles.rightSection}>
-          <ImageUpload 
-            onUploadStart={handleUploadStart}
-            onUploadComplete={handleUploadComplete}
-            onUploadError={handleUploadError}
-          />
-
-          {/* Profile Section */}
-          <div style={styles.profileSection}>
-            <div 
-              style={styles.profileButton}
-              onClick={() => setShowDropdown(!showDropdown)}
-            >
-              {currentUser?.photoURL ? (
-                <img 
-                  src={currentUser.photoURL} 
-                  alt="Profile" 
-                  style={styles.profileImage}
-                />
-              ) : (
-                <div style={styles.avatarCircle}>
-                  {getInitials()}
-                </div>
-              )}
+          ) : (
+            <div style={styles.avatarCircle}>
+              {getInitials()}
             </div>
-
-            {showDropdown && (
-              <>
-                <div 
-                  style={styles.overlay} 
-                  onClick={() => setShowDropdown(false)}
-                />
-                <div style={styles.dropdown}>
-                  <div style={styles.dropdownHeader}>
-                    <div style={styles.userInfo}>
-                      <div style={styles.userName}>
-                        {currentUser?.displayName || 'User'}
-                      </div>
-                      <div style={styles.userEmail}>{currentUser?.email}</div>
-                    </div>
-                  </div>
-                  <div style={styles.divider} />
-                  <button 
-                    style={styles.dropdownItem} 
-                    onClick={() => {
-                      setShowDropdown(false);
-                      navigate('/profile');
-                    }}
-                  >
-                    <span style={styles.dropdownIcon}>👤</span>
-                    Profile
-                  </button>
-                  <div style={styles.divider} />
-                  <button 
-                    style={{...styles.dropdownItem, color: '#dc3545'}} 
-                    onClick={handleLogout}
-                  >
-                    <span style={styles.dropdownIcon}>🚪</span>
-                    Log Out
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          )}
         </div>
+
+        {showDropdown && (
+          <>
+            <div
+              style={styles.overlay}
+              onClick={() => setShowDropdown(false)}
+            />
+            <div style={styles.dropdown}>
+              <div style={styles.dropdownHeader}>
+                <div style={styles.userInfo}>
+                  <div style={styles.userName}>
+                    {currentUser?.displayName || 'User'}
+                  </div>
+                  <div style={styles.userEmail}>{currentUser?.email}</div>
+                </div>
+              </div>
+              <div style={styles.divider} />
+              <button
+                style={styles.dropdownItem}
+                onClick={() => {
+                  setShowDropdown(false);
+                  navigate('/profile');
+                }}
+              >
+                <span style={styles.dropdownIcon}>👤</span>
+                Profile
+              </button>
+              <div style={styles.divider} />
+              <button
+                style={{...styles.dropdownItem, color: '#dc3545'}}
+                onClick={handleLogout}
+              >
+                <span style={styles.dropdownIcon}>🚪</span>
+                Log Out
+              </button>
+            </div>
+          </>
+        )}
       </div>
-    </nav>
+    </>
   );
 }
 
@@ -180,6 +179,23 @@ const styles = {
     fontSize: '22px',
     color: '#e8eaed',
     fontWeight: '400' as const,
+  },
+  demoBadge: {
+    fontSize: '12px',
+    color: '#202124',
+    backgroundColor: '#8ab4f8',
+    borderRadius: '10px',
+    padding: '2px 8px',
+    fontWeight: '500' as const,
+  },
+  repoLink: {
+    color: '#8ab4f8',
+    fontSize: '14px',
+    textDecoration: 'none',
+    border: '1px solid #5f6368',
+    borderRadius: '18px',
+    padding: '8px 16px',
+    whiteSpace: 'nowrap' as const,
   },
   centerSection: {
     flex: 1,

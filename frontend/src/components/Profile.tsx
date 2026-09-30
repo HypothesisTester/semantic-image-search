@@ -1,161 +1,59 @@
-import { useState, useEffect, useRef } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
+import { db } from '../config/firebase';
 
+// Profile pictures used to be uploaded to Firebase Storage, which new
+// projects can only use on the paid plan. The picture now comes from the
+// sign-in provider (e.g. the Google account photo), and only the display
+// name is editable.
 export default function Profile() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [displayName, setDisplayName] = useState('');
-  const [photoURL, setPhotoURL] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewURL, setPreviewURL] = useState('');
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  // Load user data on mount
   useEffect(() => {
     async function loadUserData() {
       if (!currentUser) return;
-
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setDisplayName(userData.displayName || currentUser.displayName || '');
-          setPhotoURL(userData.photoURL || currentUser.photoURL || '');
-        } else {
-          setDisplayName(currentUser.displayName || '');
-          setPhotoURL(currentUser.photoURL || '');
-        }
+        setDisplayName(
+          (userDoc.exists() && userDoc.data().displayName) || currentUser.displayName || '',
+        );
       } catch (err) {
         console.error('Error loading user data:', err);
+        setDisplayName(currentUser.displayName || '');
       }
     }
-
     loadUserData();
   }, [currentUser]);
 
-    const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type - ONLY JPG and PNG
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-        setError('Please select a valid image file (JPG or PNG only)');
-        return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB');
-        return;
-    }
-
-    setSelectedFile(file);
-    setError('');
-
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        setPreviewURL(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    };
-
-  // Upload profile picture
-  const uploadProfilePicture = async (): Promise<string | null> => {
-    if (!selectedFile || !currentUser) return null;
-
-    try {
-      setUploading(true);
-
-      // Create a reference to the file location
-      const fileExtension = selectedFile.name.split('.').pop();
-      const fileName = `profile_${currentUser.uid}_${Date.now()}.${fileExtension}`;
-      const storageRef = ref(storage, `profile-pictures/${fileName}`);
-
-      // Upload the file
-      await uploadBytes(storageRef, selectedFile);
-
-      // Get the download URL
-      const downloadURL = await getDownloadURL(storageRef);
-
-      // Delete old profile picture if it exists and is from our storage
-      if (photoURL && photoURL.includes('firebase')) {
-        try {
-          const oldPhotoRef = ref(storage, photoURL);
-          await deleteObject(oldPhotoRef);
-        } catch (err) {
-          // Could not delete old photo (might be external URL)
-          console.log('Could not delete old profile picture.');
-        }
-      }
-
-      return downloadURL;
-    } catch (err: any) {
-      throw err;
-    } finally {
-      setUploading(false);
-    }
-  };
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    
     if (!currentUser) return;
 
     try {
       setError('');
       setSuccess('');
       setLoading(true);
-
-      let newPhotoURL = photoURL;
-
-      // Upload new profile picture if selected
-      if (selectedFile) {
-        const uploadedURL = await uploadProfilePicture();
-        if (uploadedURL) {
-          newPhotoURL = uploadedURL;
-        }
-      }
-
-      // Update Firebase Auth profile
-      await updateProfile(currentUser, {
-        displayName: displayName || null,
-        photoURL: newPhotoURL || null,
-      });
-
-      // Update Firestore document
-      await updateDoc(doc(db, 'users', currentUser.uid), {
-        displayName: displayName || null,
-        photoURL: newPhotoURL || null,
-        updatedAt: new Date().toISOString(),
-      });
-
+      await updateProfile(currentUser, { displayName: displayName || null });
+      // merge: works whether or not the profile document exists yet.
+      await setDoc(
+        doc(db, 'users', currentUser.uid),
+        { displayName: displayName || null, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
       setSuccess('Profile updated successfully!');
-
-      // Clear selected file and preview
-      setSelectedFile(null);
-      setPreviewURL('');
-      setPhotoURL(newPhotoURL);
-
-      // Reload the page to update navbar
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-
-    } catch (err: any) {
-      setError('Failed to update profile: ' + err.message);
+      setTimeout(() => window.location.reload(), 1500); // refresh the navbar's name
+    } catch (err) {
+      setError('Failed to update profile: ' + (err instanceof Error ? err.message : err));
     }
     setLoading(false);
   }
@@ -171,49 +69,21 @@ export default function Profile() {
     return currentUser?.email?.[0].toUpperCase() || 'U';
   };
 
-  // Determine which image to show
-  const displayImage = previewURL || photoURL;
+  const photoURL = currentUser?.photoURL;
 
   return (
     <div style={styles.container}>
       <div style={styles.content}>
         <div style={styles.card}>
           <h2 style={styles.title}>Profile Settings</h2>
-          
-          {/* Profile Picture Preview */}
+
           <div style={styles.profilePreview}>
-            {displayImage ? (
-              <img 
-                src={displayImage} 
-                alt="Profile" 
-                style={styles.profileImage}
-              />
+            {photoURL ? (
+              <img src={photoURL} alt="Profile" style={styles.profileImage} />
             ) : (
-              <div style={styles.avatarCircle}>
-                {getInitials()}
-              </div>
+              <div style={styles.avatarCircle}>{getInitials()}</div>
             )}
           </div>
-
-            <div style={styles.uploadButtonContainer}>
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png"
-                onChange={handleFileSelect}
-                style={styles.fileInput}
-            />
-            <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                style={styles.uploadButton}
-            >
-                📸 {selectedFile ? 'Change Photo' : 'Upload Photo'}
-            </button>
-            {selectedFile && (
-                <span style={styles.fileName}>{selectedFile.name}</span>
-            )}
-            </div>
 
           {success && <div style={styles.success}>{success}</div>}
           {error && <div style={styles.error}>{error}</div>}
@@ -242,20 +112,16 @@ export default function Profile() {
             </div>
 
             <div style={styles.buttonGroup}>
-              <button 
-                type="button" 
-                onClick={() => navigate('/home')} 
+              <button
+                type="button"
+                onClick={() => navigate('/home')}
                 style={styles.cancelButton}
-                disabled={loading || uploading}
+                disabled={loading}
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
-                style={styles.saveButton}
-                disabled={loading || uploading}
-              >
-                {uploading ? 'Uploading...' : loading ? 'Saving...' : 'Save Changes'}
+              <button type="submit" style={styles.saveButton} disabled={loading}>
+                {loading ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </form>

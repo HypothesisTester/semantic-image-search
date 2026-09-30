@@ -280,6 +280,24 @@ def test_health(indexer, search):
     assert search.get("/healthz").json() == {"status": "ok"}
 
 
+def test_health_checks_are_left_out_of_the_access_log(indexer):
+    import logging
+
+    access = logging.getLogger("uvicorn.access")
+
+    def record(path):
+        # The same shape uvicorn uses for access-log lines.
+        return logging.LogRecord(
+            "uvicorn.access", logging.INFO, __file__, 0,
+            '%s - "%s %s HTTP/%s" %d', ("127.0.0.1:5000", "GET", path, "1.1", 200), None,
+        )
+
+    assert not access.filter(record("/healthz"))
+    assert access.filter(record("/search"))
+    # Creating more apps does not stack up duplicate filters.
+    assert sum(type(f).__name__ == "_HideHealthChecks" for f in access.filters) == 1
+
+
 def test_photos_base_url_setting_is_used(tmp_path, encoder):
     s = Settings(data_dir=tmp_path, firebase_project_id="test", photos_base_url="https://photos.example")
     with TestClient(create_indexer(s, encoder=encoder, verifier=FakeVerifier())) as client:
@@ -334,6 +352,25 @@ def test_demo_mode_needs_no_sign_in_and_serves_its_images(tmp_path, demo_dir, en
         # No user photos, and no way to upload, in demo mode.
         assert client.get("/photos/alice/AAAAAAAAAAAAAAAAAAAAAA/display.jpg").status_code == 404
         assert client.post("/upload").status_code in (404, 405)
+
+
+def test_demo_browse_pages_through_every_photo_once(tmp_path, demo_dir, encoder):
+    s = Settings(data_dir=tmp_path, demo_mode=True, demo_dir=demo_dir)
+    with TestClient(create_search(s, encoder=encoder)) as client:
+        first = client.get("/browse", params={"offset": 0, "limit": 2}).json()
+        second = client.get("/browse", params={"offset": 2, "limit": 2}).json()
+        assert first["total"] == second["total"] == 3
+        urls = [i["url"] for i in first["items"] + second["items"]]
+        assert len(urls) == 3 and len(set(urls)) == 3
+        assert all(u.endswith(".jpg") and "/images/" in u for u in urls)
+        assert client.get(urls[0]).status_code == 200
+        assert client.get("/browse", params={"limit": 0}).status_code == 422
+        assert client.get("/browse", params={"limit": 61}).status_code == 422
+        assert client.get("/browse", params={"offset": -1}).status_code == 422
+
+
+def test_browse_is_not_available_to_signed_in_services(search):
+    assert search.get("/browse").status_code == 404
 
 
 def test_demo_mode_ignores_tokens(tmp_path, demo_dir, encoder):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -43,7 +44,21 @@ def current_uid_dependency(get_verifier: Callable[[], Verifier]):
     return current_uid
 
 
+class _HideHealthChecks(logging.Filter):
+    """Drops access-log lines for /healthz, which Docker calls every 30 seconds."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "/healthz" not in record.getMessage()
+
+
+def quiet_health_checks() -> None:
+    access = logging.getLogger("uvicorn.access")
+    if not any(isinstance(f, _HideHealthChecks) for f in access.filters):
+        access.addFilter(_HideHealthChecks())
+
+
 def add_common_routes(app: FastAPI, settings: Settings) -> None:
+    quiet_health_checks()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

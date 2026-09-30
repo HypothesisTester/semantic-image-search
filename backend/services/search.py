@@ -19,7 +19,7 @@ import logging
 import threading
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -65,6 +65,28 @@ def create_app(settings: Settings | None = None, *, encoder=None, verifier=None)
             return DEMO_UID
 
         app.mount("/images", StaticFiles(directory=settings.thumbnails_dir), name="images")
+
+        @app.get("/browse")
+        def browse(
+            request: Request,
+            offset: int = Query(0, ge=0),
+            limit: int = Query(24, ge=1, le=60),
+        ) -> dict:
+            """A page of the demo's photos, for the landing page. Demo mode only:
+            signed-in users browse their own library from the frontend's records."""
+            total, page = index.list_items(DEMO_UID, offset=offset, limit=limit)
+            base = base_url(settings, request)
+            return {
+                "total": total,
+                "items": [
+                    {
+                        "url": base + meta["url"],
+                        "thumbnailUrl": base + meta.get("thumbnail", meta["url"]),
+                        **({"caption": meta["caption"]} if meta.get("caption") else {}),
+                    }
+                    for _, meta in page
+                ],
+            }
     else:
         current_uid = current_uid_dependency(lambda: app.state.verifier)
         add_photo_routes(app, PhotoStore(settings.photos_dir))
