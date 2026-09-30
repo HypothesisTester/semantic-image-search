@@ -113,7 +113,13 @@ export default function SearchResultsGallery({ query }: SearchResultsGalleryProp
     body = (
       <div className="grid grid--large">
         {results.map(r => (
-          <PhotoTile key={r.url} src={r.thumbnailUrl} alt={`Result ${r.rank}`} onOpen={() => setSelected(r)} />
+          <PhotoTile
+            key={r.url}
+            src={r.thumbnailUrl}
+            alt={`Result ${r.rank}`}
+            priority={r.rank <= 8}
+            onOpen={() => setSelected(r)}
+          />
         ))}
       </div>
     );

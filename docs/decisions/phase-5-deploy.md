@@ -45,6 +45,16 @@ The frontend is a single-page app, so a link like `/result?q=dog` has no file be
 ### 8. One setting keeps the build lean
 `@huggingface/transformers` depends on `onnxruntime-node`, whose install step downloads large optional GPU binaries. Neither the browser nor the verification script needs them, so `frontend/.npmrc` skips that step, on developer machines and on Vercel alike.
 
+### 9. The first photos don't wait for anything they don't need
+On a phone the landing page used to take about 15 seconds to show a photo. Three things added up: the page downloaded all the search data, including the 5 MB of vectors, before showing the photo list; every file on Hugging Face is a redirect to a CDN, possibly in another region, costing extra round trips per file and per thumbnail; and the demo shipped the Firebase sign-in code it never uses.
+
+- **Browsing needs only the photo list**, so it no longer waits for the vectors. They download in the background a second after the first photos appear, or as soon as the visitor touches the search box or an example.
+- **The build copies the data into the site** (`frontend/scripts/bundle-demo-data.mjs`, run before `npm run build`): the data files, the vectors, the first 48 thumbnails, and a few-KB list of the first page. These are served by Vercel's own CDN with no redirect, and `index.html` preloads the first page's list and first 12 photos alongside the app's code. Copying the list and vectors together also keeps a deployment's data consistent. If the copy fails, the build carries on and the page fetches from Hugging Face as before.
+- **Example searches are answered at build time.** The same script ranks all 5,000 photos for each example, by the same dot product the page uses (checked by a test), and includes their photos, so tapping an example needs neither the vectors nor Hugging Face.
+- **The sign-in app is a separate code chunk**, which the demo never loads: the demo's main script went from 138 KB to 78 KB compressed.
+
+With the throttling used for these measurements (a phone on 4G: 150 ms latency, 4 Mbps), the first photos went from 14.4 s to about 2 s.
+
 ### Known limits
 - A search typed before the background download finishes still waits for the rest of it (127 MB on the first visit only). Example searches never need the model.
 - The demo shows 384 px thumbnails only, not full-size images.

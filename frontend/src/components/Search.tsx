@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DEMO_MODE } from '../config/api';
+import { preloadSearchData } from '../api';
 import { preloadSearchModel } from '../demo/preload';
 
 interface SearchProps {
@@ -21,6 +22,11 @@ export default function Search({ variant = 'header', autoFocus = false }: Search
     if (!trimmed) return;
     // The query lives in the URL, so results can be refreshed, bookmarked and shared.
     navigate(`/result?q=${encodeURIComponent(trimmed)}`);
+  };
+
+  const startPreloads = () => {
+    preloadSearchData();
+    preloadSearchModel();
   };
 
   const placeholder =
@@ -43,9 +49,9 @@ export default function Search({ variant = 'header', autoFocus = false }: Search
         value={query}
         // Tapping or typing starts the model download; not focus, which the
         // landing page's autofocus would trigger on every visit.
-        onPointerDown={preloadSearchModel}
+        onPointerDown={startPreloads}
         onChange={e => {
-          preloadSearchModel();
+          startPreloads();
           setQuery(e.target.value);
         }}
       />
