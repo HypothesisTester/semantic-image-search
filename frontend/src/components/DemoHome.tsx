@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATIC_DEMO } from '../config/api';
-import { browseDemo } from '../api';
+import { browseDemo, preloadSearchData } from '../api';
 import type { BrowsePage } from '../api';
 import PhotoLightbox from './PhotoLightbox';
 import PhotoTile from './PhotoTile';
@@ -9,6 +9,8 @@ import Search from './Search';
 import { useFitRows } from './useFitRows';
 
 const PAGE_SIZE = 24;
+// Photos that are likely on the first screen, loaded ahead of everything else.
+const FIRST_SCREEN = 12;
 const SLOW_AFTER_MS = 3000;
 // Start loading the next page this far before the end of the grid scrolls into view.
 const PRELOAD_MARGIN = '800px 0px';
@@ -69,6 +71,16 @@ export default function DemoHome() {
     };
   }, [loadPage]);
 
+  // Once the first photos are showing, fetch the search data (5 MB) in the
+  // background, so an example search is instant. Waiting keeps it from
+  // competing with the first photos on a slow connection.
+  const showing = photos.length > 0;
+  useEffect(() => {
+    if (!showing) return;
+    const timer = window.setTimeout(preloadSearchData, 1000);
+    return () => window.clearTimeout(timer);
+  }, [showing]);
+
   // Later pages: load more whenever the end of the grid comes near the screen.
   // The observer is recreated after each page, and reports at once if the end
   // is still near, so a tall screen keeps filling until it has enough.
@@ -98,7 +110,7 @@ export default function DemoHome() {
         </div>
         <div className="chips" ref={chips}>
           {EXAMPLES.map(q => (
-            <button key={q} className="chip" onClick={() => search(q)}>
+            <button key={q} className="chip" onPointerDown={preloadSearchData} onClick={() => search(q)}>
               {q}
             </button>
           ))}
@@ -110,8 +122,14 @@ export default function DemoHome() {
       )}
 
       <div className="grid">
-        {photos.map(photo => (
-          <PhotoTile key={photo.url} src={photo.thumbnailUrl} alt="" onOpen={() => setSelected(photo)} />
+        {photos.map((photo, i) => (
+          <PhotoTile
+            key={photo.url}
+            src={photo.thumbnailUrl}
+            alt=""
+            priority={i < FIRST_SCREEN}
+            onOpen={() => setSelected(photo)}
+          />
         ))}
         {photos.length === 0 && !error && Array.from({ length: PAGE_SIZE }, (_, i) => <div key={i} className="skeleton" />)}
       </div>

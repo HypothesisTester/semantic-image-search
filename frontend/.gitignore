@@ -8,6 +8,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+# copied in at build time by scripts/bundle-demo-data.mjs
+public/demo-data
 dist
 dist-ssr
 *.local

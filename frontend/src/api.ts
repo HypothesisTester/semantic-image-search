@@ -5,7 +5,6 @@
 // no userId to send. getIdToken() returns a cached token and refreshes it
 // automatically shortly before it expires.
 
-import { auth } from './config/firebase';
 import { DEMO_DATA_URL, DEMO_MODE, INDEX_URL, SEARCH_URL, STATIC_DEMO } from './config/api';
 import type { ModelProgress } from './demo/textEncoder';
 
@@ -38,6 +37,8 @@ export interface SearchResult {
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (DEMO_MODE) return {};
+  // Imported here, not at the top, so the demo build never includes Firebase.
+  const { auth } = await import('./config/firebase');
   const user = auth.currentUser;
   if (!user) throw new ApiError('You are signed out. Please sign in again.', 401);
   return { Authorization: `Bearer ${await user.getIdToken()}` };
@@ -92,6 +93,12 @@ export async function browseDemo(offset: number, limit: number, signal?: AbortSi
   }
   const res = await send(`${SEARCH_URL}/browse?offset=${offset}&limit=${limit}`, { signal });
   return (await res.json()) as BrowsePage;
+}
+
+/** Demo only: start downloading the search data in the background. */
+export function preloadSearchData(): void {
+  if (!STATIC_DEMO) return;
+  import('./demo/staticDemo').then(m => m.preloadIndex(DEMO_DATA_URL)).catch(() => {});
 }
 
 /** Search the user's photos (or the demo's) by text. */
